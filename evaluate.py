@@ -24,7 +24,7 @@ def clean_completion(text: str):
         text = text[text.index("def"):]
     return text.strip()
 
-# Load the base model and the fine-tuned LoRA adapter, and prepare them for evaluation. 
+# Load the base model, tokenizer, and the fine-tuned LoRA adapter, and prepare them for evaluation. 
 def load_model():
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
     tokenizer.pad_token = tokenizer.eos_token
@@ -38,6 +38,8 @@ def load_model():
     return model, tokenizer
 
 # Generates complete Python function code for a given prompt using the loaded model and tokenizer.
+# Tokenize each prompt (example in HumanEval) then feed into model, to get tokenized output. 
+# Then decode the output tokens back into text and clean it to extract the generated Python function.
 def generate(model, tokenizer, prompt):
 
     input_text = f"""
@@ -69,6 +71,8 @@ def generate(model, tokenizer, prompt):
     return clean_completion(decoded)
 
 # Main function to load the model, read problems, generate completions, and evaluate correctness.
+# After tokenizing prompt, generating a completion, and then de-tokenizing the output, we evaluate the correctness, by computing
+# pass@1 metric, which is the ratio of problems it got correct against the total number of problems it solved.
 def main():
     model, tokenizer = load_model()
     problems = read_problems()
