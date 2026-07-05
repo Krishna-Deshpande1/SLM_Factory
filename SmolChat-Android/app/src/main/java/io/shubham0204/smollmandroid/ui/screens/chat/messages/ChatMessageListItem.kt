@@ -3,6 +3,7 @@ package io.shubham0204.smollmandroid.ui.screens.chat.messages
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,9 +16,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyItemScope
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -32,6 +35,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.shubham0204.smollmandroid.R
@@ -79,7 +83,11 @@ fun LazyItemScope.MessageListItem(
             onCopyClicked,
             onShareClicked,
             onCodeSnippetCopyClicked,
-            responseGenerationSpeed,
+            // Fall back to the transient per-session value only when this message has no
+            // persisted metrics yet (e.g. it's still streaming, or predates the metrics
+            // migration). Once persisted, message.decodeTps/ttftMs etc. are the source of truth
+            // and survive app restarts — see AppDB.updateMessageMetrics().
+            message.decodeTps ?: responseGenerationSpeed,
             responseGenerationTimeSecs
         )
     }
@@ -241,6 +249,88 @@ private fun LazyItemScope.LLMMessageListItem(
                     Text(text = "$responseGenerationTimeSecs s", fontSize = 8.sp)
                 }
             }
+            // Persisted per-message metrics (TTFT, peak RSS, cold load, power, thermal) —
+            // populated for both manual and headless-benchmark messages. Only rendered once any
+            // of these has actually been recorded, so older messages and user messages show
+            // nothing extra.
+            if (message.ttftMs != null || message.peakRssKb != null || message.coldLoadTimeMs != null ||
+                message.avgCurrentUa != null || message.thermalStatus != null
+            ) {
+                MessageMetricsRow(message)
+            }
         }
+    }
+}
+
+/**
+ * Same styled metrics badge row originally shown only as a transient panel for the most recent
+ * response (see the removed ChatActivity.InferenceMetricsPanel/InferenceMetricItem). Reused here
+ * per-message so every message — historical or newest, manual or headless-triggered — renders
+ * identically, reading straight from that message's own persisted metric columns.
+ */
+@Composable
+private fun MessageMetricsRow(message: ChatMessage) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        tonalElevation = 1.dp,
+    ) {
+        Row(
+            modifier = Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            message.ttftMs?.let {
+                MetricBadge(label = "TTFT", value = "${it}ms")
+            }
+            message.decodeTps?.let {
+                MetricBadge(label = "TPS", value = "%.1f tok/s".format(it))
+            }
+            message.peakRssKb?.let {
+                MetricBadge(label = "Peak RSS", value = "${it}KB")
+            }
+            message.coldLoadTimeMs?.let {
+                MetricBadge(label = "Cold Load", value = "${it}ms")
+            }
+            message.avgCurrentUa?.let {
+                MetricBadge(label = "Power", value = "%.1fmA".format(it / 1000.0))
+            }
+            message.thermalStatus?.let {
+                MetricBadge(
+                    label = "Thermal",
+                    value = it,
+                    valueColor = if (it == "Throttled" || it == "Moderate" || it == "Severe" ||
+                        it == "Critical" || it == "Emergency"
+                    ) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MetricBadge(
+    label: String,
+    value: String,
+    valueColor: Color = MaterialTheme.colorScheme.primary,
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = valueColor,
+        )
     }
 }

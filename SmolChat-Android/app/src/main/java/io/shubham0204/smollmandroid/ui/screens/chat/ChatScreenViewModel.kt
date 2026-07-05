@@ -746,6 +746,7 @@ class ChatScreenViewModel(
                 monitorJob.cancel()
                 val metrics = buildInferenceMetrics(response, currentSamples, thermalThrottled, chargeAtStartUah)
                 logMetrics(metrics)
+                persistMessageMetrics(response.savedMessageId, metrics)
                 val updatedChat = chat.copy(contextSizeConsumed = response.contextLengthUsed)
                 _uiState.update {
                     it.copy(
@@ -937,6 +938,25 @@ class ChatScreenViewModel(
             "ThermalThrottled=${m.thermalThrottled}"
         )
         Log.d("POWER", "value=${if (m.avgCurrentUa == Long.MIN_VALUE) "unsupported" else "${m.avgCurrentUa / 1000}"}")
+    }
+
+    /**
+     * Attaches computed metrics to the assistant message they belong to, so the metrics panel
+     * can be shown per-message (including after reopening the app), not just for the current
+     * session's last response. No-ops when [messageId] is null (e.g. saveToDb=false runs, like
+     * the in-app benchmark).
+     */
+    private fun persistMessageMetrics(messageId: Long?, m: InferenceMetrics) {
+        if (messageId == null) return
+        appDB.updateMessageMetrics(
+            messageId = messageId,
+            ttftMs = m.ttftMs,
+            decodeTps = m.decodeTps,
+            peakRssKb = m.peakRssKb,
+            coldLoadTimeMs = m.coldLoadTimeMs,
+            avgCurrentUa = if (m.avgCurrentUa == Long.MIN_VALUE) null else m.avgCurrentUa,
+            thermalStatus = if (m.thermalThrottled) "Throttled" else "Normal",
+        )
     }
 
     companion object {

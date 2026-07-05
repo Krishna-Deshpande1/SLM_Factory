@@ -27,7 +27,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,7 +38,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -50,7 +48,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
@@ -60,10 +57,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -421,7 +416,14 @@ private fun ColumnScope.ScreenUI(uiState: ChatScreenUIState, onEvent: (ChatScree
         uiState.responseGenerationTimeSecs,
         onEvent,
     )
-    uiState.inferenceMetrics?.let { InferenceMetricsPanel(it) }
+    // Note: per-response metrics are rendered inline under each message in MessagesList (see
+    // MessageMetricsRow in ChatMessageListItem.kt), reading directly from that message's own
+    // persisted ttftMs/decodeTps/etc. columns. This works identically for manually-typed and
+    // headless-triggered (BenchmarkService) messages, since both write through the same
+    // AppDB.addAssistantMessage()/updateMessageMetrics() calls. A separate transient panel here
+    // (keyed off uiState.inferenceMetrics, the latest in-session response only) was removed
+    // because it duplicated that display for the newest manual message while never appearing for
+    // headless ones — the exact "different visual style" inconsistency this was meant to fix.
     MessageInput(
         uiState.chat,
         uiState.modelLoadingState,
@@ -429,69 +431,6 @@ private fun ColumnScope.ScreenUI(uiState: ChatScreenUIState, onEvent: (ChatScree
         uiState.isGeneratingResponse,
         onEvent
     )
-}
-
-@Composable
-private fun InferenceMetricsPanel(metrics: InferenceMetrics) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = 1.dp,
-    ) {
-        Row(
-            modifier = Modifier
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            InferenceMetricItem(label = "TTFT", value = "${metrics.ttftMs}ms")
-            InferenceMetricItem(label = "TPS", value = "%.1f tok/s".format(metrics.decodeTps))
-            InferenceMetricItem(label = "Peak RSS", value = "${metrics.peakRssKb}KB")
-            InferenceMetricItem(
-                label = "Cold Load",
-                value = metrics.coldLoadTimeMs?.let { "${it}ms" } ?: "—",
-            )
-            InferenceMetricItem(
-                label = "Power",
-                value = when {
-                    metrics.avgCurrentUa == Long.MIN_VALUE -> "unsupported hardware"
-                    metrics.avgCurrentUa > 0 -> "${metrics.avgCurrentUa / 1000}mA"
-                    else -> "N/A"
-                },
-            )
-            InferenceMetricItem(
-                label = "Thermal",
-                value = if (metrics.thermalThrottled) "Throttled" else "Normal",
-                valueColor = if (metrics.thermalThrottled) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.primary
-                },
-            )
-        }
-    }
-}
-
-@Composable
-private fun InferenceMetricItem(
-    label: String,
-    value: String,
-    valueColor: Color = MaterialTheme.colorScheme.primary,
-) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            color = valueColor,
-        )
-    }
 }
 
 @Composable

@@ -34,6 +34,16 @@ data class ChatMessage(
     var chatId: Long = 0,
     var message: String = "",
     var isUserMessage: Boolean = false,
+    // Inference metrics, populated only for assistant messages (null for user messages and for
+    // any assistant messages inserted before this column set existed). Mirrors the transient
+    // InferenceMetrics computed in ChatScreenViewModel/BenchmarkService, persisted so the metrics
+    // panel can be shown per-message, including after reopening the app.
+    var ttftMs: Long? = null,
+    var decodeTps: Float? = null,
+    var peakRssKb: Long? = null,
+    var coldLoadTimeMs: Long? = null,
+    var avgCurrentUa: Long? = null,
+    var thermalStatus: String? = null,
     @Ignore
     var renderedMessage: Spanned = "".toSpanned()
 )
@@ -47,7 +57,22 @@ interface ChatMessageDao {
     suspend fun getMessagesForModel(chatId: Long): List<ChatMessage>
 
     @Insert
-    suspend fun insertMessage(message: ChatMessage)
+    suspend fun insertMessage(message: ChatMessage): Long
+
+    @Query(
+        "UPDATE ChatMessage SET ttftMs = :ttftMs, decodeTps = :decodeTps, " +
+        "peakRssKb = :peakRssKb, coldLoadTimeMs = :coldLoadTimeMs, " +
+        "avgCurrentUa = :avgCurrentUa, thermalStatus = :thermalStatus WHERE id = :messageId"
+    )
+    suspend fun updateMessageMetrics(
+        messageId: Long,
+        ttftMs: Long?,
+        decodeTps: Float?,
+        peakRssKb: Long?,
+        coldLoadTimeMs: Long?,
+        avgCurrentUa: Long?,
+        thermalStatus: String?,
+    )
 
     @Query("DELETE FROM ChatMessage WHERE chatId = :chatId")
     suspend fun deleteMessages(chatId: Long)

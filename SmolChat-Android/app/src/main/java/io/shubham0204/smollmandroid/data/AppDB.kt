@@ -5,15 +5,33 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.runBlocking
 import org.koin.core.annotation.Single
 import java.util.Date
 
+/**
+ * Adds the inference-metrics columns to ChatMessage (all nullable, so existing rows simply get
+ * NULL and require no backfill) so per-message metrics can be persisted and shown again after
+ * reopening the app, instead of only living in transient ViewModel state.
+ */
+val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE ChatMessage ADD COLUMN ttftMs INTEGER")
+        db.execSQL("ALTER TABLE ChatMessage ADD COLUMN decodeTps REAL")
+        db.execSQL("ALTER TABLE ChatMessage ADD COLUMN peakRssKb INTEGER")
+        db.execSQL("ALTER TABLE ChatMessage ADD COLUMN coldLoadTimeMs INTEGER")
+        db.execSQL("ALTER TABLE ChatMessage ADD COLUMN avgCurrentUa INTEGER")
+        db.execSQL("ALTER TABLE ChatMessage ADD COLUMN thermalStatus TEXT")
+    }
+}
+
 @Database(
     entities = [Chat::class, ChatMessage::class, LLMModel::class, Task::class, Folder::class],
-    version = 1,
+    version = 2,
 )
 @TypeConverters(Converters::class)
 abstract class AppRoomDatabase : RoomDatabase() {
@@ -31,7 +49,9 @@ abstract class AppRoomDatabase : RoomDatabase() {
 @Single
 class AppDB(context: Context) {
     private val db =
-        Room.databaseBuilder(context, AppRoomDatabase::class.java, "app-database").build()
+        Room.databaseBuilder(context, AppRoomDatabase::class.java, "app-database")
+            .addMigrations(MIGRATION_1_2)
+            .build()
 
     /** Get all chats from the database sorted by dateUsed in descending order. */
     fun getChats(): Flow<List<Chat>> = db.chatsDao().getChats()
@@ -110,13 +130,29 @@ class AppDB(context: Context) {
                 )
         }
 
-    fun addAssistantMessage(chatId: Long, message: String) =
+    /** Inserts the assistant's message and returns its generated row id. */
+    fun addAssistantMessage(chatId: Long, message: String): Long =
         runBlocking(Dispatchers.IO) {
             db.chatMessagesDao()
                 .insertMessage(
                     ChatMessage(chatId = chatId, message = message, isUserMessage = false)
                 )
         }
+
+    /** Attaches inference metrics to an already-inserted assistant message. */
+    fun updateMessageMetrics(
+        messageId: Long,
+        ttftMs: Long?,
+        decodeTps: Float?,
+        peakRssKb: Long?,
+        coldLoadTimeMs: Long?,
+        avgCurrentUa: Long?,
+        thermalStatus: String?,
+    ) = runBlocking(Dispatchers.IO) {
+        db.chatMessagesDao().updateMessageMetrics(
+            messageId, ttftMs, decodeTps, peakRssKb, coldLoadTimeMs, avgCurrentUa, thermalStatus
+        )
+    }
 
     fun deleteMessage(messageId: Long) =
         runBlocking(Dispatchers.IO) { db.chatMessagesDao().deleteMessage(messageId) }

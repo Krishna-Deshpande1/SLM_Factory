@@ -27,6 +27,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Single
 import java.io.File
@@ -82,6 +83,10 @@ class SmolLMManager(private val appDB: AppDB) {
         val usedJinjaTemplate: Boolean = true,
         val ttftMs: Long = 0L,
         val peakRssKb: Long = 0L,
+        // Row id of the assistant message this response was saved as (only set when
+        // saveToDb=true and a message was actually inserted), so callers can attach inference
+        // metrics to that specific message afterward via AppDB.updateMessageMetrics().
+        val savedMessageId: Long? = null,
     )
 
     fun load(
@@ -92,13 +97,23 @@ class SmolLMManager(private val appDB: AppDB) {
         onSuccess: () -> Unit,
     ) {
         stateLock.withLock {
-            // Cancel any existing load operation
-            modelInitJob?.cancel()
+            // Request cancellation of any existing load immediately, but note this alone does
+            // NOT stop it: instance.load() runs a blocking native JNI call inside
+            // withContext(Dispatchers.IO), and coroutine cancellation is cooperative — it can't
+            // interrupt code that isn't at a suspension point. If a second instance.load() call
+            // starts while the first is still physically running, both mutate the same shared
+            // native SmolLM instance concurrently, which can corrupt native state (e.g.
+            // GGUFReader's native handle, causing a "Use GGUFReader.load() to initialize the
+            // reader" crash). The `previousJob` capture + join below ensures the previous load
+            // has fully finished before this one touches `instance`.
+            val previousJob = modelInitJob
+            previousJob?.cancel()
 
             try {
                 this.chat = chat
                 modelInitJob = CoroutineScope(Dispatchers.Default).launch {
                     try {
+                        previousJob?.join()
                         val loadDuration = measureTime { instance.load(modelPath, params) }
                         lastColdLoadTimeMs = loadDuration.inWholeMilliseconds
                         LOGD("Model loaded | Cold load time: ${lastColdLoadTimeMs}ms")
@@ -145,7 +160,18 @@ class SmolLMManager(private val appDB: AppDB) {
         stateLock.withLock {
             // Cancel jobs
             responseGenerationJob.safeCancelJobIfActive()
-            modelInitJob.safeCancelJobIfActive()
+
+            // Block until any in-flight load has actually stopped before closing the native
+            // instance below. Requesting cancellation alone isn't enough — see the comment in
+            // load() — so closing the instance while a previous instance.load() native call is
+            // still executing would race with it and leave the shared SmolLM instance in a
+            // corrupted or stale state.
+            modelInitJob?.let { job ->
+                if (job.isActive) {
+                    job.cancel()
+                    runBlocking { job.join() }
+                }
+            }
 
             isInstanceLoaded.set(false)
             chat = null
@@ -223,9 +249,12 @@ class SmolLMManager(private val appDB: AppDB) {
                     // Thread-safe access to chat
                     val currentChat = stateLock.withLock { chat }
 
-                    if (saveToDb && currentChat != null) {
-                        appDB.addAssistantMessage(currentChat.id, response)
-                    }
+                    val savedMessageId =
+                        if (saveToDb && currentChat != null) {
+                            appDB.addAssistantMessage(currentChat.id, response)
+                        } else {
+                            null
+                        }
 
                     LOGD(
                         "Inference complete | TTFT: ${ttftMs}ms | " +
@@ -244,6 +273,7 @@ class SmolLMManager(private val appDB: AppDB) {
                                 usedJinjaTemplate = instance.usedJinjaTemplate,
                                 ttftMs = ttftMs,
                                 peakRssKb = peakRssKb,
+                                savedMessageId = savedMessageId,
                             )
                         )
                     }
