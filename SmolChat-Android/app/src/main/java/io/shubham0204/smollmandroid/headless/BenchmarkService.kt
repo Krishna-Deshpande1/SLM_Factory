@@ -25,7 +25,6 @@ import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import io.shubham0204.smollm.SmolLM
 import io.shubham0204.smollmandroid.R
 import io.shubham0204.smollmandroid.data.AppDB
 import io.shubham0204.smollmandroid.llm.ModelsRepository
@@ -149,39 +148,19 @@ class BenchmarkService : Service() {
         val targetChat = appDB.getRecentlyUsedChat() ?: appDB.loadDefaultChat()
 
         // Every headless call reloads the model before inference — deliberately, not an
-        // optimization gap. This is the only way (without native/JNI changes) to guarantee each
-        // question is a genuinely fresh, single-turn interaction:
-        //   - SmolLM's native startCompletion() unconditionally appends the query onto its
-        //     internal _messages list on every call (see LLMInference.cpp) — that list is only
-        //     ever cleared by loadModel(). Skipping reload (as a "fast path" optimization used to
-        //     do here) let successive headless questions silently accumulate onto one growing
-        //     native context, degrading TTFT/TPS more with each run.
-        //   - SmolLMManager.load() also replays a chat's full DB message history into the model
-        //     when chat.isTask == false. Passing targetChat.copy(isTask = true) for the load call
-        //     (below) skips that replay, so the pile of previously-logged headless Q&A pairs in
-        //     targetChat's history is never fed back in as fake prior conversation — while still
-        //     using targetChat's real minP/temperature/contextSize/nThreads/mmap/mlock/chatTemplate
-        //     settings (via .copy(), which preserves every other field) for an apples-to-apples
-        //     comparison with how that chat performs manually. System prompt is still applied,
-        //     matching what a genuinely first message in a brand-new chat would see.
-        // The visible chat log and per-message metrics are unaffected — those are written using
-        // the real targetChat (not this isTask=true copy) further below, exactly as before.
+        // optimization gap. See SmolLMManager.loadIsolatedSingleTurn() for why this is the only
+        // way (without native/JNI changes) to guarantee each question is a genuinely fresh,
+        // single-turn interaction, and why targetChat's own settings are still used for an
+        // apples-to-apples comparison with how that chat performs manually. The visible chat log
+        // and per-message metrics are unaffected — those are written using the real targetChat
+        // (not the isTask=true copy loadIsolatedSingleTurn uses internally) further below, exactly
+        // as before. This same helper is also used by ChatScreenViewModel for manual chat sends,
+        // so both paths define "isolated single turn" identically and stay in sync.
         Log.d("BENCHMARK", "run_id=$runId loading model from $modelPath for an isolated single-turn call")
-        smolLMManager.unload()
         val loadDeferred = CompletableDeferred<Result<Unit>>()
-        smolLMManager.load(
-            chat      = targetChat.copy(isTask = true),
+        smolLMManager.loadIsolatedSingleTurn(
+            chat      = targetChat,
             modelPath = modelPath,
-            params    = SmolLM.InferenceParams(
-                targetChat.minP,
-                targetChat.temperature,
-                false,
-                targetChat.contextSize.toLong(),
-                targetChat.chatTemplate.takeIf { it.isNotBlank() && ("{%" in it || "{{" in it) },
-                targetChat.nThreads,
-                targetChat.useMmap,
-                targetChat.useMlock,
-            ),
             onError   = { e -> loadDeferred.complete(Result.failure(e)) },
             onSuccess = {    loadDeferred.complete(Result.success(Unit)) },
         )

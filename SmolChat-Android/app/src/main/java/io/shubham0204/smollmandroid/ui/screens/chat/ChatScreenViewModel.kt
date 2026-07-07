@@ -720,74 +720,112 @@ class ChatScreenViewModel(
         _uiState.update { it.copy(isGeneratingResponse = true, renderedPartialResponse = null) }
         lastRenderTime = 0L
 
-        val currentSamples = Collections.synchronizedList(mutableListOf<Long>())
-        val thermalThrottled = AtomicBoolean(false)
-        val (monitorJob, chargeAtStartUah) = startPowerThermalMonitoring(currentSamples, thermalThrottled)
-        val promptDispatchTimeMs = System.currentTimeMillis()
+        // Mirrors BenchmarkService's headless context isolation exactly (same shared helper —
+        // see SmolLMManager.loadIsolatedSingleTurn): reload this chat's model with isTask=true so
+        // no prior DB history is replayed and the native chat state starts empty, making this a
+        // genuinely single-turn call to the model — while the visible chat log/DB below still
+        // gets the full multi-turn message list appended exactly as before.
+        val modelPath = smolLMManager.currentModelPath
+            ?: modelsRepository.getModelFromId(chat.llmModelId)?.path
+        if (modelPath == null) {
+            _uiState.update { it.copy(isGeneratingResponse = false) }
+            createAlertDialog(
+                dialogTitle = "An error occurred",
+                dialogText = "No model is loaded for this chat.",
+                dialogPositiveButtonText = "Change model",
+                onPositiveButtonClick = {},
+                dialogNegativeButtonText = "",
+                onNegativeButtonClick = {},
+            )
+            return
+        }
 
-        smolLMManager.getResponse(
-            query,
-            promptDispatchTimeMs = promptDispatchTimeMs,
-            responseTransform = {
-                // Replace <think> tags with <blockquote> tags
-                // to get a neat Markdown rendering
-                findThinkTagRegex.replace(it) { matchResult ->
-                    "<blockquote><i><h6>${matchResult.groupValues[1].trim()}</i></h6></blockquote>"
-                }
-            },
-            onPartialResponseGenerated = { resp ->
-                val currentTime = System.currentTimeMillis()
-                if (currentTime - lastRenderTime > 100) {
-                    _uiState.update { it.copy(renderedPartialResponse = mdRenderer.render(resp)) }
-                    lastRenderTime = currentTime
-                }
-            },
-            onSuccess = { response ->
-                monitorJob.cancel()
-                val metrics = buildInferenceMetrics(response, currentSamples, thermalThrottled, chargeAtStartUah)
-                logMetrics(generateManualRunId(response.savedMessageId), metrics, response.response)
-                persistMessageMetrics(response.savedMessageId, metrics)
-                val updatedChat = chat.copy(contextSizeConsumed = response.contextLengthUsed)
-                _uiState.update {
-                    it.copy(
-                        chat = updatedChat,
-                        isGeneratingResponse = false,
-                        responseGenerationsSpeed = response.generationSpeed,
-                        responseGenerationTimeSecs = response.generationTimeSecs,
-                        inferenceMetrics = metrics,
-                        memoryUsage =
-                            if (it.memoryUsage != null) {
-                                getCurrentMemoryUsage()
-                            } else {
-                                null
-                            },
-                    )
-                }
-                appDB.updateChat(updatedChat)
-                if (!response.usedJinjaTemplate) {
-                    Toast.makeText(
-                        context,
-                        "Model's Jinja chat template not fully supported, using legacy renderer",
-                        Toast.LENGTH_LONG,
-                    ).show()
-                }
-            },
-            onCancelled = {
-                monitorJob.cancel()
-                // ignore CancellationException, as it was called because
-                // `responseGenerationJob` was cancelled in the `stopGeneration` method
-            },
-            onError = { exception ->
-                monitorJob.cancel()
+        smolLMManager.loadIsolatedSingleTurn(
+            chat      = chat,
+            modelPath = modelPath,
+            onError   = { e ->
                 _uiState.update { it.copy(isGeneratingResponse = false) }
                 createAlertDialog(
                     dialogTitle = "An error occurred",
                     dialogText =
-                        "The app is unable to process the query. The error message is: ${exception.message}",
+                        "The app is unable to process the query. The error message is: ${e.message}",
                     dialogPositiveButtonText = "Change model",
                     onPositiveButtonClick = {},
                     dialogNegativeButtonText = "",
                     onNegativeButtonClick = {},
+                )
+            },
+            onSuccess = {
+                val currentSamples = Collections.synchronizedList(mutableListOf<Long>())
+                val thermalThrottled = AtomicBoolean(false)
+                val (monitorJob, chargeAtStartUah) = startPowerThermalMonitoring(currentSamples, thermalThrottled)
+                val promptDispatchTimeMs = System.currentTimeMillis()
+
+                smolLMManager.getResponse(
+                    query,
+                    promptDispatchTimeMs = promptDispatchTimeMs,
+                    responseTransform = {
+                        // Replace <think> tags with <blockquote> tags
+                        // to get a neat Markdown rendering
+                        findThinkTagRegex.replace(it) { matchResult ->
+                            "<blockquote><i><h6>${matchResult.groupValues[1].trim()}</i></h6></blockquote>"
+                        }
+                    },
+                    onPartialResponseGenerated = { resp ->
+                        val currentTime = System.currentTimeMillis()
+                        if (currentTime - lastRenderTime > 100) {
+                            _uiState.update { it.copy(renderedPartialResponse = mdRenderer.render(resp)) }
+                            lastRenderTime = currentTime
+                        }
+                    },
+                    onSuccess = { response ->
+                        monitorJob.cancel()
+                        val metrics = buildInferenceMetrics(response, currentSamples, thermalThrottled, chargeAtStartUah)
+                        logMetrics(generateManualRunId(response.savedMessageId), metrics, response.response)
+                        persistMessageMetrics(response.savedMessageId, metrics)
+                        val updatedChat = chat.copy(contextSizeConsumed = response.contextLengthUsed)
+                        _uiState.update {
+                            it.copy(
+                                chat = updatedChat,
+                                isGeneratingResponse = false,
+                                responseGenerationsSpeed = response.generationSpeed,
+                                responseGenerationTimeSecs = response.generationTimeSecs,
+                                inferenceMetrics = metrics,
+                                memoryUsage =
+                                    if (it.memoryUsage != null) {
+                                        getCurrentMemoryUsage()
+                                    } else {
+                                        null
+                                    },
+                            )
+                        }
+                        appDB.updateChat(updatedChat)
+                        if (!response.usedJinjaTemplate) {
+                            Toast.makeText(
+                                context,
+                                "Model's Jinja chat template not fully supported, using legacy renderer",
+                                Toast.LENGTH_LONG,
+                            ).show()
+                        }
+                    },
+                    onCancelled = {
+                        monitorJob.cancel()
+                        // ignore CancellationException, as it was called because
+                        // `responseGenerationJob` was cancelled in the `stopGeneration` method
+                    },
+                    onError = { exception ->
+                        monitorJob.cancel()
+                        _uiState.update { it.copy(isGeneratingResponse = false) }
+                        createAlertDialog(
+                            dialogTitle = "An error occurred",
+                            dialogText =
+                                "The app is unable to process the query. The error message is: ${exception.message}",
+                            dialogPositiveButtonText = "Change model",
+                            onPositiveButtonClick = {},
+                            dialogNegativeButtonText = "",
+                            onNegativeButtonClick = {},
+                        )
+                    },
                 )
             },
         )

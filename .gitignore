@@ -1,5 +1,20 @@
-.venv/*
-out/*
-*pyc
-temp/*
-lora_adapter/*
+# Model files - too large for git, regenerable via convert_to_gguf.py
+*.gguf
+*.bin
+*.safetensors
+
+# Python
+__pycache__/
+.venv/
+*.pyc
+
+# Downloaded HuggingFace model cache/snapshots
+**/Qwen__*/
+**/HuggingFaceTB__*/
+**/*.cache/
+
+# Output folders from model conversion
+Model-Conversion/output-*/
+
+# macOS
+.DS_Store

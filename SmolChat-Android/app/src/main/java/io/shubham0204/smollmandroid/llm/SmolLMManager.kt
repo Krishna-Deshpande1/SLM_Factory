@@ -156,6 +156,46 @@ class SmolLMManager(private val appDB: AppDB) {
         }
     }
 
+    /**
+     * Loads [modelPath] for a single, context-isolated turn: [chat]'s own inference settings
+     * (minP/temperature/contextSize/nThreads/mmap/mlock/chatTemplate/systemPrompt) are applied —
+     * for an apples-to-apples comparison with how that chat behaves normally — but its prior DB
+     * message history is never replayed into the model. This is achieved by passing
+     * chat.copy(isTask = true) to [load] internally: isTask=true skips the DB history replay,
+     * and the underlying unload()+load() still clears the native chat state either way (SmolLM's
+     * native startCompletion() unconditionally appends each query onto its own internal message
+     * list, which is only ever cleared by a fresh instance.load() — there is no cheaper
+     * "just clear context" primitive without native/JNI changes).
+     *
+     * This is the single source of truth for "genuinely fresh, single-turn interaction" — used by
+     * both BenchmarkService (headless runs) and ChatScreenViewModel (manual chat sends) so both
+     * stay in sync automatically rather than each re-implementing the same isolation logic.
+     */
+    fun loadIsolatedSingleTurn(
+        chat: Chat,
+        modelPath: String,
+        onError: (Exception) -> Unit,
+        onSuccess: () -> Unit,
+    ) {
+        unload()
+        load(
+            chat      = chat.copy(isTask = true),
+            modelPath = modelPath,
+            params    = SmolLM.InferenceParams(
+                chat.minP,
+                chat.temperature,
+                false,
+                chat.contextSize.toLong(),
+                chat.chatTemplate.takeIf { it.isNotBlank() && ("{%" in it || "{{" in it) },
+                chat.nThreads,
+                chat.useMmap,
+                chat.useMlock,
+            ),
+            onError = onError,
+            onSuccess = onSuccess,
+        )
+    }
+
     fun unload() {
         stateLock.withLock {
             // Cancel jobs

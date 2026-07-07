@@ -1,0 +1,217 @@
+{
+  "run_info": {
+    "model": "qwen2.5-0.5b-instruct-f16.gguf",
+    "model_device_path": "/sdcard/Download/qwen2.5-0.5b-instruct-f16.gguf",
+    "device": "phone",
+    "quant": "Q4_K_M",
+    "start_time": "2026-07-07T23:03:23.089851+00:00",
+    "end_time": "2026-07-07T23:05:59.428049+00:00",
+    "total": 10,
+    "completed": 10,
+    "failed": 0,
+    "context_resets": 0
+  },
+  "results": [
+    {
+      "question_number": 1,
+      "question": "What is the capital of France?",
+      "run_id": "run_1_1783465403091",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 450,
+        "ttft_ms": 1033,
+        "tps": 5.155288,
+        "memory_kb": 1291260,
+        "power_ma": 608.7,
+        "thermal": "Normal"
+      },
+      "response": "The capital of France is Paris.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 2,
+      "question": "Who wrote Romeo and Juliet?",
+      "run_id": "run_2_1783465407881",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 464,
+        "ttft_ms": 1106,
+        "tps": 14.879438,
+        "memory_kb": 1307544,
+        "power_ma": 606.8,
+        "thermal": "Normal"
+      },
+      "response": "The characters in Romeo and Juliet were written by William Shakespeare, an English playwright and poet. The play is considered one of the greatest tragedy of all time and one of the most important works of literature in the English language. The story is set in the late 1590s and tells the story of Romeo (a young man) and Juliet (a girl) who fall in love and are killed by a plague, and their families who suffer the consequences. The play is renowned for its rich portrayal of love, corruption, and betrayal, and it remains one of the most iconic and loved plays of all time.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 3,
+      "question": "What is the chemical symbol for gold?",
+      "run_id": "run_3_1783465419987",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 470,
+        "ttft_ms": 1018,
+        "tps": 5.707563,
+        "memory_kb": 1327768,
+        "power_ma": 606.5,
+        "thermal": "Normal"
+      },
+      "response": "The chemical symbol for gold is Au.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 4,
+      "question": "What is the largest planet in our solar system?",
+      "run_id": "run_4_1783465424903",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 475,
+        "ttft_ms": 1204,
+        "tps": 5.566063,
+        "memory_kb": 1326012,
+        "power_ma": 604.8,
+        "thermal": "Normal"
+      },
+      "response": "The largest planet in our solar system is Jupiter.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 5,
+      "question": "What year did the first human land on the moon?",
+      "run_id": "run_5_1783465429807",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 467,
+        "ttft_ms": 1162,
+        "tps": 7.2128997,
+        "memory_kb": 1334112,
+        "power_ma": 603.7,
+        "thermal": "Normal"
+      },
+      "response": "The first human landed on the moon in 1969.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 6,
+      "question": "What are the three states of matter?",
+      "run_id": "run_6_1783465435692",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 480,
+        "ttft_ms": 1030,
+        "tps": 7.596933,
+        "memory_kb": 1352148,
+        "power_ma": 602.8,
+        "thermal": "Normal"
+      },
+      "response": "There are three states of matter: solid, liquid, and gas.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 7,
+      "question": "How does a refrigerator keep food cold?",
+      "run_id": "run_7_1783465440512",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 473,
+        "ttft_ms": 1098,
+        "tps": 15.450779,
+        "memory_kb": 1355004,
+        "power_ma": 605.1,
+        "thermal": "Normal"
+      },
+      "response": "A refrigerator is a device that keeps food cold by utilizing the principles of heat transfer. When food is placed in the refrigerator, it absorbs heat from the surrounding environment. As the food is exposed to the cold temperature, it gradually loses its warmth and temperature.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 8,
+      "question": "Explain the process of photosynthesis in plants.",
+      "run_id": "run_8_1783465458688",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 476,
+        "ttft_ms": 1086,
+        "tps": 15.790262,
+        "memory_kb": 1372812,
+        "power_ma": 603.2,
+        "thermal": "Normal"
+      },
+      "response": "Photosynthesis is the process by which plants convert sunlight, carbon dioxide, and water into glucose and oxygen. Here's an explanation of the process of photosynthesis in plants:",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 9,
+      "question": "Summarize the theory of relativity in simple terms.",
+      "run_id": "run_9_1783465512393",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 481,
+        "ttft_ms": 1209,
+        "tps": 15.299328,
+        "memory_kb": 1375008,
+        "power_ma": 602.6,
+        "thermal": "Normal"
+      },
+      "response": "Relativity is a theory that suggests that the laws of physics are the same for all observers, regardless of their relative motion or speed. This means that at any given moment, all observers in the same reference frame will see the same phenomena, even if they are moving at different speeds.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 10,
+      "question": "Describe the causes and consequences of World War I in a few sentences.",
+      "run_id": "run_10_1783465532909",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 472,
+        "ttft_ms": 1376,
+        "tps": 15.504319,
+        "memory_kb": 1386656,
+        "power_ma": 603.6,
+        "thermal": "Normal"
+      },
+      "response": "World War I (1914-1918) was a global conflict that resulted in the deaths of over 8 million people and the devastation of millions more. The causes of World War I were complex and varied, but in part stem from the combination of ideologies, political and economic factors, and technological advancements. Here are some of the main causes and consequences of World War I:",
+      "error": null,
+      "context_reset": false
+    }
+  ],
+  "summary": {
+    "ttft_ms": {
+      "mean": 1132.2,
+      "std": 104.258,
+      "min": 1018,
+      "max": 1376
+    },
+    "tps": {
+      "mean": 10.816,
+      "std": 4.625,
+      "min": 5.155288,
+      "max": 15.790262
+    },
+    "memory_kb": {
+      "mean": 1342832.4,
+      "std": 29292.273,
+      "min": 1291260,
+      "max": 1386656
+    },
+    "power_ma": {
+      "mean": 604.78,
+      "std": 1.904,
+      "min": 602.6,
+      "max": 608.7
+    },
+    "thermal_states_observed": [
+      "Normal"
+    ],
+    "note": "TPS/TTFT drift across the run reflects real device thermal state as it heats up under sustained inference, not measurement error.",
+    "rss_note": "peak_RSS_KB is only directly comparable across different models if each was benchmarked in a freshly restarted app process - this script now guarantees that automatically as of this version."
+  }
+}

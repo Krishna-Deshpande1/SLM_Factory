@@ -289,6 +289,17 @@ def restart_smolchat(adb: Adb):
     time.sleep(3)
 
 
+def reset_smolchat_for_clean_process(adb: Adb):
+    """One-time reset at script startup so RSS isn't contaminated by a
+    high-water mark left over from a model loaded in a prior, separate
+    invocation of this script (see run_benchmark's mid-run context-size
+    reset for the unrelated, per-question retry logic)."""
+    print("[RESET] Force-stopping and restarting SmolChat for a clean process state (required for accurate Peak RSS)...")
+    adb.run(["shell", "am", "force-stop", PACKAGE], timeout=15)
+    adb.run(["shell", "am", "start", "-n", MAIN_ACTIVITY_COMPONENT], timeout=15)
+    time.sleep(4)
+
+
 def run_one(adb: Adb, model_path: str, question: str, n: int, timeout: int) -> dict:
     run_id = f"run_{n}_{int(time.time() * 1000)}"
     clear_logcat(adb)
@@ -422,6 +433,11 @@ def compute_summary(results: list) -> dict:
             "TPS/TTFT drift across the run reflects real device thermal state "
             "as it heats up under sustained inference, not measurement error."
         ),
+        "rss_note": (
+            "peak_RSS_KB is only directly comparable across different models if each was "
+            "benchmarked in a freshly restarted app process - this script now guarantees "
+            "that automatically as of this version."
+        ),
     }
 
 
@@ -440,6 +456,7 @@ def print_summary_table(summary: dict):
         print(row)
     print(f"\nThermal states observed: {', '.join(summary['thermal_states_observed']) or 'none'}")
     print(summary["note"])
+    print(summary["rss_note"])
 
 
 def save_results(output_path: str, run_info: dict, summary: dict, results: list):
@@ -478,6 +495,8 @@ def main():
     check_device(adb, args.device)
     check_smolchat_installed(adb)
     print_thermal_reminder()
+
+    reset_smolchat_for_clean_process(adb)
 
     model_path, model_name = resolve_model(args.model, args.quant, adb)
     questions = load_questions(args.questions)
