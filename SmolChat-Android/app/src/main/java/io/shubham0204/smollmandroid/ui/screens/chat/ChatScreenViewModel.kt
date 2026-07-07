@@ -745,7 +745,7 @@ class ChatScreenViewModel(
             onSuccess = { response ->
                 monitorJob.cancel()
                 val metrics = buildInferenceMetrics(response, currentSamples, thermalThrottled, chargeAtStartUah)
-                logMetrics(metrics)
+                logMetrics(generateManualRunId(response.savedMessageId), metrics, response.response)
                 persistMessageMetrics(response.savedMessageId, metrics)
                 val updatedChat = chat.copy(contextSizeConsumed = response.contextLengthUsed)
                 _uiState.update {
@@ -815,7 +815,7 @@ class ChatScreenViewModel(
             onSuccess = { response ->
                 monitorJob.cancel()
                 val metrics = buildInferenceMetrics(response, currentSamples, thermalThrottled, chargeAtStartUah)
-                logMetrics(metrics)
+                logMetrics(generateManualRunId(response.savedMessageId), metrics, response.response)
                 _uiState.update { it.copy(isGeneratingResponse = false, inferenceMetrics = metrics) }
                 onComplete()
             },
@@ -925,7 +925,7 @@ class ChatScreenViewModel(
         return Long.MIN_VALUE
     }
 
-    private fun logMetrics(m: InferenceMetrics) {
+    private fun logMetrics(runId: String, m: InferenceMetrics, responseText: String) {
         val coldStr = m.coldLoadTimeMs?.let { "${it}ms" } ?: "(warm)"
         val powerStr = if (m.avgCurrentUa == Long.MIN_VALUE) "unsupported hardware" else "${m.avgCurrentUa}µA"
         Log.d(
@@ -937,8 +937,31 @@ class ChatScreenViewModel(
             "AvgCurrent=$powerStr | " +
             "ThermalThrottled=${m.thermalThrottled}"
         )
-        Log.d("POWER", "value=${if (m.avgCurrentUa == Long.MIN_VALUE) "unsupported" else "${m.avgCurrentUa / 1000}"}")
+
+        // Same tags/format as BenchmarkService's headless logging (COLD_LOAD/TTFT/TPS/MEMORY/
+        // POWER/THERMAL/RUN_DONE, all keyed by run_id), so logcat output is consistent and
+        // parseable the same way regardless of whether a message came from manual chat or a
+        // headless broadcast. Values are unchanged from what's already computed above — this is
+        // purely an additional, differently-formatted set of log lines.
+        val avgPowerMa = if (m.avgCurrentUa == Long.MIN_VALUE) null else m.avgCurrentUa / 1000.0
+        val thermalStatus = if (m.thermalThrottled) "Throttled" else "Normal"
+        Log.d("COLD_LOAD", "run_id=$runId value=${m.coldLoadTimeMs ?: 0}")
+        Log.d("TTFT",      "run_id=$runId value=${m.ttftMs}")
+        Log.d("TPS",       "run_id=$runId value=${m.decodeTps}")
+        Log.d("MEMORY",    "run_id=$runId value=${m.peakRssKb}")
+        Log.d("POWER",     "run_id=$runId value=${avgPowerMa?.let { "%.1f".format(it) } ?: "unsupported"}")
+        Log.d("THERMAL",   "run_id=$runId value=$thermalStatus")
+        Log.d("RUN_DONE",  "run_id=$runId response=$responseText")
     }
+
+    /**
+     * Manual messages aren't triggered by an external caller supplying a run_id (unlike
+     * BenchmarkService's headless runs), so one is generated here: the saved message's own id
+     * when available (stable, unique per message), falling back to a timestamp for calls that
+     * don't persist a message (e.g. the in-app benchmark screen, which uses saveToDb=false).
+     */
+    private fun generateManualRunId(savedMessageId: Long?): String =
+        savedMessageId?.let { "manual_msg_$it" } ?: "manual_${System.currentTimeMillis()}"
 
     /**
      * Attaches computed metrics to the assistant message they belong to, so the metrics panel

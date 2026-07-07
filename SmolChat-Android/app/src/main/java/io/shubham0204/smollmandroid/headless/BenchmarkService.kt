@@ -144,45 +144,50 @@ class BenchmarkService : Service() {
     private suspend fun runBenchmarkInternal(rawModelPath: String, prompt: String, runId: String) {
         val modelPath = resolveReadableModelPath(rawModelPath, runId) ?: return
 
-        // Resolve the real target chat up front (not a throwaway Chat(isTask=true)) so both the
-        // model load below and the DB writes further down use the exact same chat — matching its
-        // actual configured minP/temperature/contextSize/nThreads/chatTemplate/mmap/mlock, and
-        // correctly loading its prior conversation history, exactly like the manual chat path.
+        // Resolve the real target chat up front so the DB writes further down (question, answer,
+        // metrics) land in the exact same chat the manual UI would show as "active".
         val targetChat = appDB.getRecentlyUsedChat() ?: appDB.loadDefaultChat()
 
-        // Reload only when the model path changes or SmolLMManager has been unloaded.
-        val needsLoad = smolLMManager.currentModelPath != modelPath
-                     || !smolLMManager.isInstanceLoaded.get()
-        if (needsLoad) {
-            Log.d("BENCHMARK", "run_id=$runId loading model from $modelPath")
-            smolLMManager.unload()
-
-            // Mirrors ChatScreenViewModel.loadModel() exactly: use the target chat's own
-            // inference settings instead of hardcoded defaults, so the headless run is an
-            // apples-to-apples comparison with how that chat performs manually.
-            val loadDeferred = CompletableDeferred<Result<Unit>>()
-            smolLMManager.load(
-                chat      = targetChat,
-                modelPath = modelPath,
-                params    = SmolLM.InferenceParams(
-                    targetChat.minP,
-                    targetChat.temperature,
-                    !targetChat.isTask,
-                    targetChat.contextSize.toLong(),
-                    targetChat.chatTemplate.takeIf { it.isNotBlank() && ("{%" in it || "{{" in it) },
-                    targetChat.nThreads,
-                    targetChat.useMmap,
-                    targetChat.useMlock,
-                ),
-                onError   = { e -> loadDeferred.complete(Result.failure(e)) },
-                onSuccess = {    loadDeferred.complete(Result.success(Unit)) },
-            )
-            loadDeferred.await().getOrElse { e ->
-                Log.d("RUN_ERROR", "run_id=$runId reason=model_load_failed message=${e.message}")
-                return
-            }
-        } else {
-            Log.d("BENCHMARK", "run_id=$runId model already loaded, skipping reload")
+        // Every headless call reloads the model before inference — deliberately, not an
+        // optimization gap. This is the only way (without native/JNI changes) to guarantee each
+        // question is a genuinely fresh, single-turn interaction:
+        //   - SmolLM's native startCompletion() unconditionally appends the query onto its
+        //     internal _messages list on every call (see LLMInference.cpp) — that list is only
+        //     ever cleared by loadModel(). Skipping reload (as a "fast path" optimization used to
+        //     do here) let successive headless questions silently accumulate onto one growing
+        //     native context, degrading TTFT/TPS more with each run.
+        //   - SmolLMManager.load() also replays a chat's full DB message history into the model
+        //     when chat.isTask == false. Passing targetChat.copy(isTask = true) for the load call
+        //     (below) skips that replay, so the pile of previously-logged headless Q&A pairs in
+        //     targetChat's history is never fed back in as fake prior conversation — while still
+        //     using targetChat's real minP/temperature/contextSize/nThreads/mmap/mlock/chatTemplate
+        //     settings (via .copy(), which preserves every other field) for an apples-to-apples
+        //     comparison with how that chat performs manually. System prompt is still applied,
+        //     matching what a genuinely first message in a brand-new chat would see.
+        // The visible chat log and per-message metrics are unaffected — those are written using
+        // the real targetChat (not this isTask=true copy) further below, exactly as before.
+        Log.d("BENCHMARK", "run_id=$runId loading model from $modelPath for an isolated single-turn call")
+        smolLMManager.unload()
+        val loadDeferred = CompletableDeferred<Result<Unit>>()
+        smolLMManager.load(
+            chat      = targetChat.copy(isTask = true),
+            modelPath = modelPath,
+            params    = SmolLM.InferenceParams(
+                targetChat.minP,
+                targetChat.temperature,
+                false,
+                targetChat.contextSize.toLong(),
+                targetChat.chatTemplate.takeIf { it.isNotBlank() && ("{%" in it || "{{" in it) },
+                targetChat.nThreads,
+                targetChat.useMmap,
+                targetChat.useMlock,
+            ),
+            onError   = { e -> loadDeferred.complete(Result.failure(e)) },
+            onSuccess = {    loadDeferred.complete(Result.success(Unit)) },
+        )
+        loadDeferred.await().getOrElse { e ->
+            Log.d("RUN_ERROR", "run_id=$runId reason=model_load_failed message=${e.message}")
+            return
         }
 
         // ── Power / thermal monitoring ─────────────────────────────────────────
@@ -215,9 +220,10 @@ class BenchmarkService : Service() {
         appDB.addUserMessage(targetChat.id, prompt)
 
         Log.d("BENCHMARK", "run_id=$runId starting inference")
-        // Fix 3: the first real inference in a fresh process is measured here (TTFT/TPS), but it
-        // can be markedly slower than steady-state chat UI numbers for the same model/phone. This
-        // is expected, not a bug in this instrumentation: SmolLM.load()'s cold-load timer only
+        // Fix 3: every headless call now reloads before inference (see above), so each one pays
+        // the same "first real inference after load" cost measured here (TTFT/TPS) — this can be
+        // markedly slower than steady-state chat UI numbers for the same model/phone. This is
+        // expected, not a bug in this instrumentation: SmolLM.load()'s cold-load timer only
         // covers llama_model_load_from_file()/llama_init_from_model() (mmap() the GGUF file and
         // allocate the context) — see LLMInference.cpp's loadModel(). The actual llama_decode()
         // call that touches every weight tensor only happens inside completionLoop(), i.e. on the

@@ -21,6 +21,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
+import io.shubham0204.smollmandroid.ui.screens.chat.ChatActivity
 
 /**
  * Receives `com.smollmandroid.RUN_PROMPT` broadcasts (e.g. from ADB) and delegates to
@@ -54,6 +55,19 @@ class HeadlessBenchmarkReceiver : BroadcastReceiver() {
         }
 
         Log.d("BROADCAST_RECEIVER", "received run_id=$runId")
+
+        // Bring ChatActivity to the foreground so the run is visible as it happens, matching the
+        // manual chat flow. No extras are passed — ChatActivity's own ViewModel init resolves the
+        // "currently active chat" via ChatScreenViewModel.initializeUIState() ->
+        // AppDB.loadDefaultChat() -> getRecentlyUsedChat(), the exact same lookup
+        // BenchmarkService already uses to decide which chat to write headless messages into.
+        // FLAG_ACTIVITY_REORDER_TO_FRONT brings an already-running instance forward as-is
+        // (preserving whatever chat the user is currently viewing) rather than recreating it;
+        // FLAG_ACTIVITY_NEW_TASK is required to start an Activity from this non-Activity context.
+        val activityIntent = Intent(context, ChatActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+        }
+        context.startActivity(activityIntent)
 
         val serviceIntent = Intent(context, BenchmarkService::class.java).apply {
             putExtra("model_path", modelPath)

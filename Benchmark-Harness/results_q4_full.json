@@ -1,0 +1,216 @@
+{
+  "run_info": {
+    "model": "qwen2.5-0.5b-instruct-q4_k_m.gguf",
+    "model_device_path": "/sdcard/Download/qwen2.5-0.5b-instruct-q4_k_m.gguf",
+    "device": "phone",
+    "quant": "Q4_K_M",
+    "start_time": "2026-07-07T17:35:42.932654+00:00",
+    "end_time": "2026-07-07T17:37:48.103518+00:00",
+    "total": 10,
+    "completed": 10,
+    "failed": 0,
+    "context_resets": 0
+  },
+  "results": [
+    {
+      "question_number": 1,
+      "question": "What is the capital of France?",
+      "run_id": "run_1_1783445742933",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 442,
+        "ttft_ms": 543,
+        "tps": 8.006771,
+        "memory_kb": 650020,
+        "power_ma": 492.2,
+        "thermal": "Normal"
+      },
+      "response": "The capital of France is Paris.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 2,
+      "question": "Who wrote Romeo and Juliet?",
+      "run_id": "run_2_1783445751550",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 466,
+        "ttft_ms": 572,
+        "tps": 14.019482,
+        "memory_kb": 673784,
+        "power_ma": 494.2,
+        "thermal": "Normal"
+      },
+      "response": "Romeo and Juliet was written by William Shakespeare. The play was first performed in 1600, although it was not published until 1611. It is a tragedy about two young, innocent women in love who are rejected by their families and forced to live together as enemies. The play explores themes of love, revenge, and the lengths to which people will go to protect their own interests. The story has been adapted countless times in various forms over the centuries, including a 2006 movie, a stage play, and a 1996 television production.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 3,
+      "question": "What is the chemical symbol for gold?",
+      "run_id": "run_3_1783445763643",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 494,
+        "ttft_ms": 539,
+        "tps": 7.4887786,
+        "memory_kb": 680968,
+        "power_ma": 490.5,
+        "thermal": "Normal"
+      },
+      "response": "The chemical symbol for gold is Au.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 4,
+      "question": "What is the largest planet in our solar system?",
+      "run_id": "run_4_1783445768493",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 493,
+        "ttft_ms": 625,
+        "tps": 14.192592,
+        "memory_kb": 689388,
+        "power_ma": 491.8,
+        "thermal": "Normal"
+      },
+      "response": "The largest planet in our solar system is Jupiter.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 5,
+      "question": "What year did the first human land on the moon?",
+      "run_id": "run_5_1783445790558",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 497,
+        "ttft_ms": 606,
+        "tps": 11.88994,
+        "memory_kb": 697060,
+        "power_ma": 490.0,
+        "thermal": "Normal"
+      },
+      "response": "The first human landed on the Moon on the 21st of July 1969.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 6,
+      "question": "What are the three states of matter?",
+      "run_id": "run_6_1783445796453",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 498,
+        "ttft_ms": 535,
+        "tps": 10.297769,
+        "memory_kb": 706348,
+        "power_ma": 488.2,
+        "thermal": "Normal"
+      },
+      "response": "Three states of matter are solid, liquid, and gas.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 7,
+      "question": "How does a refrigerator keep food cold?",
+      "run_id": "run_7_1783445801221",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 507,
+        "ttft_ms": 572,
+        "tps": 14.704436,
+        "memory_kb": 690636,
+        "power_ma": 490.1,
+        "thermal": "Normal"
+      },
+      "response": "A refrigerator works by using a system of refrigeration to keep food cool and prevent spoilage. Here are the basic steps that a refrigerator goes through:",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 8,
+      "question": "Explain the process of photosynthesis in plants.",
+      "run_id": "run_8_1783445823178",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 497,
+        "ttft_ms": 574,
+        "tps": 14.439377,
+        "memory_kb": 672224,
+        "power_ma": 490.1,
+        "thermal": "Normal"
+      },
+      "response": "Photosynthesis is the process by which plants use sunlight, water, and carbon dioxide to produce energy in the form of glucose. This process occurs in the chloroplasts of plant cells and involves the splitting of water molecules to release oxygen, which is then used for cellular respiration and energy production.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 9,
+      "question": "Summarize the theory of relativity in simple terms.",
+      "run_id": "run_9_1783445845069",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 500,
+        "ttft_ms": 626,
+        "tps": 15.604453,
+        "memory_kb": 680452,
+        "power_ma": 489.0,
+        "thermal": "Normal"
+      },
+      "response": "Relativity is a theory that deals with the nature of space, time, and gravity, as well as how they interact with matter. It suggests that the rules of physics change when looking at things from different vantage points or at different times. In simpler terms, it means that time and space are not fixed and can change depending on the frame of reference in which they are measured. This theory has been a part of scientific thought for many years, and it has helped to explain many phenomena in the world around us.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 10,
+      "question": "Describe the causes and consequences of World War I in a few sentences.",
+      "run_id": "run_10_1783445855388",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 501,
+        "ttft_ms": 724,
+        "tps": 13.940029,
+        "memory_kb": 689548,
+        "power_ma": 489.6,
+        "thermal": "Normal"
+      },
+      "response": "World War I, also known as the war between the Allied Powers and the Central Powers, was a conflict that lasted from 1914 to 1918. The causes of World War I include economic instability, political strife, military failures, and the rise of nationalism and militarism. The consequences of World War I include extensive damage to property, loss of life, and the loss of countless lives in the process. The war also led to significant territorial changes, as countries gained or lost significant land and territory during the conflict. The war also had a significant impact on global politics, as the conflict led to the rise of new powers and the establishment of new alliances.",
+      "error": null,
+      "context_reset": false
+    }
+  ],
+  "summary": {
+    "ttft_ms": {
+      "mean": 591.6,
+      "std": 54.265,
+      "min": 535,
+      "max": 724
+    },
+    "tps": {
+      "mean": 12.458,
+      "std": 2.757,
+      "min": 7.4887786,
+      "max": 15.604453
+    },
+    "memory_kb": {
+      "mean": 683042.8,
+      "std": 14778.851,
+      "min": 650020,
+      "max": 706348
+    },
+    "power_ma": {
+      "mean": 490.57,
+      "std": 1.647,
+      "min": 488.2,
+      "max": 494.2
+    },
+    "thermal_states_observed": [
+      "Normal"
+    ],
+    "note": "TPS/TTFT drift across the run reflects real device thermal state as it heats up under sustained inference, not measurement error."
+  }
+}
