@@ -1,0 +1,222 @@
+{
+  "run_info": {
+    "model": "qwen2.5-0.5b-instruct-q8_0.gguf",
+    "model_device_path": "/sdcard/Download/qwen2.5-0.5b-instruct-q8_0.gguf",
+    "device": "phone",
+    "quant": "Q4_K_M",
+    "start_time": "2026-07-08T17:52:12.048336+00:00",
+    "end_time": "2026-07-08T17:53:29.525043+00:00",
+    "total": 10,
+    "completed": 10,
+    "failed": 0,
+    "context_resets": 0,
+    "battery_warning": true,
+    "battery_level_pct": 85,
+    "battery_status": "Charging",
+    "rebooted_before_run": false,
+    "cold_load_note": "cold_load_ms reflects a genuinely cold read only if --reboot-before was used for this run. Without a reboot, the OS file cache may make cold_load_ms appear faster than a true cold read from storage, especially for larger model files."
+  },
+  "results": [
+    {
+      "question_number": 1,
+      "question": "What is the capital of France?",
+      "run_id": "run_1_1783533132048",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 740,
+        "ttft_ms": 336,
+        "tps": 14.408332,
+        "memory_kb": 853500,
+        "power_ma": 1515.4,
+        "thermal": "Normal"
+      },
+      "response": "The capital of France is Paris.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 2,
+      "question": "Who wrote Romeo and Juliet?",
+      "run_id": "run_2_1783533136433",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 438,
+        "ttft_ms": 334,
+        "tps": 27.781528,
+        "memory_kb": 880640,
+        "power_ma": 1121.4,
+        "thermal": "Normal"
+      },
+      "response": "\"Romeo and Juliet\" is a play written by William Shakespeare. It was first performed in 1599 and remains one of Shakespeare's most famous works. The play was set in the late medieval and early modern times, and it explores themes of love, betrayal, and the consequences of such relationships.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 3,
+      "question": "What is the chemical symbol for gold?",
+      "run_id": "run_3_1783533141925",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 455,
+        "ttft_ms": 292,
+        "tps": 17.009768,
+        "memory_kb": 873320,
+        "power_ma": 1612.0,
+        "thermal": "Normal"
+      },
+      "response": "The chemical symbol for gold is Au.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 4,
+      "question": "What is the largest planet in our solar system?",
+      "run_id": "run_4_1783533145202",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 455,
+        "ttft_ms": 347,
+        "tps": 14.074318,
+        "memory_kb": 888568,
+        "power_ma": 1548.5,
+        "thermal": "Normal"
+      },
+      "response": "The largest planet in our solar system is Mercury.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 5,
+      "question": "What year did the first human land on the moon?",
+      "run_id": "run_5_1783533149643",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 457,
+        "ttft_ms": 339,
+        "tps": 28.597801,
+        "memory_kb": 894572,
+        "power_ma": 1461.5,
+        "thermal": "Normal"
+      },
+      "response": "The first human landing on the Moon was on July 20, 1969, at 21:19 UTC.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 6,
+      "question": "What are the three states of matter?",
+      "run_id": "run_6_1783533154098",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 460,
+        "ttft_ms": 286,
+        "tps": 30.257936,
+        "memory_kb": 884756,
+        "power_ma": 1329.1,
+        "thermal": "Normal"
+      },
+      "response": "There are three fundamental states of matter:",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 7,
+      "question": "How does a refrigerator keep food cold?",
+      "run_id": "run_7_1783533159658",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 452,
+        "ttft_ms": 327,
+        "tps": 31.180704,
+        "memory_kb": 919660,
+        "power_ma": 1073.1,
+        "thermal": "Normal"
+      },
+      "response": "A refrigerator is a device that helps to keep food and other perishable items cold until they are ready to be consumed. There are several ways a refrigerator helps to keep food cold:",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 8,
+      "question": "Explain the process of photosynthesis in plants.",
+      "run_id": "run_8_1783533170787",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 462,
+        "ttft_ms": 309,
+        "tps": 32.22273,
+        "memory_kb": 928708,
+        "power_ma": 1167.1,
+        "thermal": "Normal"
+      },
+      "response": "Photosynthesis is the process by which plants use sunlight, water, and carbon dioxide to produce glucose (certain compounds that are used in the formation of food) and oxygen. The main stages of photosynthesis are:",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 9,
+      "question": "Summarize the theory of relativity in simple terms.",
+      "run_id": "run_9_1783533186275",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 458,
+        "ttft_ms": 363,
+        "tps": 32.94513,
+        "memory_kb": 906684,
+        "power_ma": 1178.0,
+        "thermal": "Normal"
+      },
+      "response": "Relativity is a scientific theory that explains the fundamental laws of physics as observed by different observers in different inertial frames of reference (i. e., frames in which no external forces can be applied to the system). Essentially, it suggests that the laws of physics are the same for all observers, regardless of their motion relative to each other or of their reference frame, and that the speed of light in a vacuum is the same for all observers, regardless of their relative motion.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 10,
+      "question": "Describe the causes and consequences of World War I in a few sentences.",
+      "run_id": "run_10_1783533199564",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 459,
+        "ttft_ms": 378,
+        "tps": 32.240726,
+        "memory_kb": 877416,
+        "power_ma": 1116.6,
+        "thermal": "Normal"
+      },
+      "response": "World War I, which began in 1914, was a conflict that caused many devastating consequences, including:",
+      "error": null,
+      "context_reset": false
+    }
+  ],
+  "summary": {
+    "ttft_ms": {
+      "mean": 331.1,
+      "std": 27.628,
+      "min": 286,
+      "max": 378
+    },
+    "tps": {
+      "mean": 26.072,
+      "std": 7.336,
+      "min": 14.074318,
+      "max": 32.94513
+    },
+    "memory_kb": {
+      "mean": 890782.4,
+      "std": 21347.486,
+      "min": 853500,
+      "max": 928708
+    },
+    "power_ma": {
+      "mean": 1312.27,
+      "std": 195.059,
+      "min": 1073.1,
+      "max": 1612.0
+    },
+    "thermal_states_observed": [
+      "Normal"
+    ],
+    "note": "TPS/TTFT drift across the run reflects real device thermal state as it heats up under sustained inference, not measurement error.",
+    "rss_note": "peak_RSS_KB is only directly comparable across different models if each was benchmarked in a freshly restarted app process - this script now guarantees that automatically as of this version."
+  }
+}

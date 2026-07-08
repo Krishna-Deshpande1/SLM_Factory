@@ -1,0 +1,46 @@
+{
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "budget_rss_mb": 800.0,
+  "timestamp": "2026-07-08T17:53:29.552767+00:00",
+  "sweep_results": [
+    {
+      "quant": "Q4_K_M",
+      "file_size_mb": 379.4,
+      "peak_RSS_mb": 756.4,
+      "TTFT_ms": 454.3,
+      "TPS": 25.136,
+      "fits_budget": true,
+      "status": "success",
+      "error": null
+    },
+    {
+      "quant": "Q5_K_M",
+      "file_size_mb": 400.6,
+      "peak_RSS_mb": 768.2,
+      "TTFT_ms": 520,
+      "TPS": 24.835,
+      "fits_budget": true,
+      "status": "success",
+      "error": null
+    },
+    {
+      "quant": "Q8_0",
+      "file_size_mb": 506.5,
+      "peak_RSS_mb": 869.9,
+      "TTFT_ms": 331.1,
+      "TPS": 26.072,
+      "fits_budget": false,
+      "status": "success",
+      "error": null
+    }
+  ],
+  "candidates_within_budget": [
+    "Q4_K_M",
+    "Q5_K_M"
+  ],
+  "recommendation": {
+    "quant_level": "Q4_K_M",
+    "reasoning": "Deterministic fallback (no LLM reasoning): selected Q4_K_M because it has the highest TPS (25.136) among quant levels that fit within the 800MB RSS budget (candidates: Q4_K_M, Q5_K_M).",
+    "reasoning_source": "deterministic_fallback"
+  }
+}

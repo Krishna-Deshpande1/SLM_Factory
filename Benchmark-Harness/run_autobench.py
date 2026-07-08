@@ -40,6 +40,14 @@ LOGCAT_TAG_FILTER = [
 
 CONTEXT_SIZE_PHRASE = "context size reached"
 
+COLD_BOOT_SETTLE_SECONDS = 25
+
+COLD_LOAD_NOTE = (
+    "cold_load_ms reflects a genuinely cold read only if --reboot-before was used for this run. "
+    "Without a reboot, the OS file cache may make cold_load_ms appear faster than a true cold read "
+    "from storage, especially for larger model files."
+)
+
 DEFAULT_QUESTIONS = [
     "What is the capital of France?",
     "Who wrote Romeo and Juliet?",
@@ -109,6 +117,37 @@ def print_thermal_reminder():
         "[NOTE] Thermal state affects TTFT/TPS. For comparable results, ideally "
         "start with the phone rested (not hot from prior use). Continuing anyway."
     )
+
+
+BATTERY_STATUS_NAMES = {1: "Unknown", 2: "Charging", 3: "Discharging", 4: "Not charging", 5: "Full"}
+
+
+def check_battery(adb: Adb) -> dict:
+    """Warn (but never block) when battery state makes Power (mA) readings untrustworthy.
+
+    BatteryManager reports near-zero/garbage discharge current when the
+    battery is full or actively charging, since there's no discharge
+    current to measure - only TTFT/TPS/RSS/Thermal stay meaningful then.
+    """
+    result = adb.run(["shell", "dumpsys", "battery"], timeout=15)
+    level_m = re.search(r"level:\s*(\d+)", result.stdout)
+    status_m = re.search(r"status:\s*(\d+)", result.stdout)
+    level = int(level_m.group(1)) if level_m else None
+    status = int(status_m.group(1)) if status_m else None
+    status_name = BATTERY_STATUS_NAMES.get(status, "Unknown")
+
+    warning = status == 5 or level == 100 or status == 2
+    if warning:
+        print(
+            f"[WARN] Battery is at {level}% and status is {status_name}. Power (mA) readings from "
+            "BatteryManager are known to be unreliable or invalid when the battery is full/charging, "
+            "since there is no discharge current to measure. For trustworthy power data, unplug the "
+            "phone and let it discharge below ~95% before running this benchmark."
+        )
+    else:
+        print(f"[OK] Battery at {level}% ({status_name}) -- Power readings should be trustworthy")
+
+    return {"battery_warning": warning, "battery_level_pct": level, "battery_status": status_name}
 
 
 # ---------------------------------------------------------------------------
@@ -289,6 +328,19 @@ def restart_smolchat(adb: Adb):
     time.sleep(3)
 
 
+def reboot_device_for_cold_load(adb: Adb):
+    """Reboot the device so cold_load_ms reflects a genuine cold read from
+    storage rather than one warmed by the OS file cache from a prior run.
+
+    "device" state from wait-for-device precedes the home screen and system
+    services actually being ready, so we sleep an extra settle period on top.
+    """
+    print("[COLD] Rebooting device for genuine cold-load measurement (this takes ~30-60s)...")
+    adb.run(["reboot"], timeout=30)
+    adb.run(["wait-for-device"], timeout=180)
+    time.sleep(COLD_BOOT_SETTLE_SECONDS)
+
+
 def reset_smolchat_for_clean_process(adb: Adb):
     """One-time reset at script startup so RSS isn't contaminated by a
     high-water mark left over from a model loaded in a prior, separate
@@ -373,7 +425,7 @@ def run_benchmark(adb: Adb, model_path: str, questions: list, timeout: int) -> t
 
             print(f"\n[{n}/{total}] \"{question}\"")
             print(
-                f"  TTFT={metrics['ttft_ms']}ms TPS={metrics['tps']} "
+                f"  ColdLoad={metrics['cold_load_ms']}ms TTFT={metrics['ttft_ms']}ms TPS={metrics['tps']} "
                 f"RSS={metrics['memory_kb']}KB Power={metrics['power_ma']}mA Thermal={metrics['thermal']}"
             )
             preview = response if response and len(response) <= 160 else (response[:157] + "..." if response else "")
@@ -441,7 +493,7 @@ def compute_summary(results: list) -> dict:
     }
 
 
-def print_summary_table(summary: dict):
+def print_summary_table(summary: dict, run_info: dict):
     print("\n" + "=" * 60)
     print("SUMMARY")
     print("=" * 60)
@@ -457,6 +509,7 @@ def print_summary_table(summary: dict):
     print(f"\nThermal states observed: {', '.join(summary['thermal_states_observed']) or 'none'}")
     print(summary["note"])
     print(summary["rss_note"])
+    print(f"{run_info['cold_load_note']} (rebooted_before_run={run_info['rebooted_before_run']})")
 
 
 def save_results(output_path: str, run_info: dict, summary: dict, results: list):
@@ -478,6 +531,8 @@ def parse_args():
     p.add_argument("--output", default="autobench_results.json")
     p.add_argument("--quant", choices=["Q4_K_M", "Q5_K_M", "Q8_0"], default="Q4_K_M")
     p.add_argument("--timeout", type=int, default=60, help="Seconds to wait for RUN_DONE/RUN_ERROR per question")
+    p.add_argument("--reboot-before", action="store_true",
+                    help="Reboot the device before benchmarking for a genuine cold-load read (adds ~30-60s)")
     return p.parse_args()
 
 
@@ -495,6 +550,11 @@ def main():
     check_device(adb, args.device)
     check_smolchat_installed(adb)
     print_thermal_reminder()
+
+    if args.reboot_before:
+        reboot_device_for_cold_load(adb)
+
+    battery_info = check_battery(adb)
 
     reset_smolchat_for_clean_process(adb)
 
@@ -519,11 +579,16 @@ def main():
         "completed": completed,
         "failed": failed,
         "context_resets": context_resets,
+        "battery_warning": battery_info["battery_warning"],
+        "battery_level_pct": battery_info["battery_level_pct"],
+        "battery_status": battery_info["battery_status"],
+        "rebooted_before_run": args.reboot_before,
+        "cold_load_note": COLD_LOAD_NOTE,
     }
 
     summary = compute_summary(results)
     save_results(args.output, run_info, summary, results)
-    print_summary_table(summary)
+    print_summary_table(summary, run_info)
 
     print("\n" + "=" * 60)
     print(f"DONE - {completed}/{len(questions)} completed, {failed} failed, {context_resets} context reset(s)")

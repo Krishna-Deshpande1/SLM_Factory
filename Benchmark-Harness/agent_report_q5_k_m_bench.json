@@ -1,0 +1,222 @@
+{
+  "run_info": {
+    "model": "qwen2.5-0.5b-instruct-q5_k_m.gguf",
+    "model_device_path": "/sdcard/Download/qwen2.5-0.5b-instruct-q5_k_m.gguf",
+    "device": "phone",
+    "quant": "Q4_K_M",
+    "start_time": "2026-07-08T17:50:41.673249+00:00",
+    "end_time": "2026-07-08T17:52:00.107385+00:00",
+    "total": 10,
+    "completed": 10,
+    "failed": 0,
+    "context_resets": 0,
+    "battery_warning": true,
+    "battery_level_pct": 84,
+    "battery_status": "Charging",
+    "rebooted_before_run": false,
+    "cold_load_note": "cold_load_ms reflects a genuinely cold read only if --reboot-before was used for this run. Without a reboot, the OS file cache may make cold_load_ms appear faster than a true cold read from storage, especially for larger model files."
+  },
+  "results": [
+    {
+      "question_number": 1,
+      "question": "What is the capital of France?",
+      "run_id": "run_1_1783533041673",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 822,
+        "ttft_ms": 498,
+        "tps": 10.731176,
+        "memory_kb": 752560,
+        "power_ma": 1458.1,
+        "thermal": "Normal"
+      },
+      "response": "The capital of France is Paris.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 2,
+      "question": "Who wrote Romeo and Juliet?",
+      "run_id": "run_2_1783533046040",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 450,
+        "ttft_ms": 520,
+        "tps": 27.26218,
+        "memory_kb": 773320,
+        "power_ma": 922.2,
+        "thermal": "Normal"
+      },
+      "response": "Romeo and Juliet was written by William Shakespeare. He lived from 1564 to 1616 and was an English playwright, poet, and writer. His most famous work is Romeo and Juliet, which was first performed in 1599 at the New Theatre in London. The play tells the story of two young lovers who are sent to be married by their families, but end up falling in love and fighting to save each other.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 3,
+      "question": "What is the chemical symbol for gold?",
+      "run_id": "run_3_1783533052646",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 453,
+        "ttft_ms": 467,
+        "tps": 23.075901,
+        "memory_kb": 760088,
+        "power_ma": 1150.1,
+        "thermal": "Normal"
+      },
+      "response": "The chemical symbol for gold is Au.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 4,
+      "question": "What is the largest planet in our solar system?",
+      "run_id": "run_4_1783533060375",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 459,
+        "ttft_ms": 542,
+        "tps": 24.077175,
+        "memory_kb": 784172,
+        "power_ma": 1191.0,
+        "thermal": "Normal"
+      },
+      "response": "The largest planet in our solar system is Jupiter. It is the fifth planet from the Sun and is the biggest and most massy of the planets. It has a diameter of about 142, 920 km and is roughly 31. 7 times the diameter of Earth. Jupiter is also the third largest planet in the solar system by mass, behind Saturn and Uranus.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 5,
+      "question": "What year did the first human land on the moon?",
+      "run_id": "run_5_1783533066989",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 457,
+        "ttft_ms": 518,
+        "tps": 22.768406,
+        "memory_kb": 806908,
+        "power_ma": 1302.8,
+        "thermal": "Normal"
+      },
+      "response": "The first human to land on the moon was Neil Armstrong. He stepped onto the lunar surface on July 20, 1969, at 2:30 a. m. (UTC) and became the first person to walk on another celestial body.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 6,
+      "question": "What are the three states of matter?",
+      "run_id": "run_6_1783533072557",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 522,
+        "ttft_ms": 508,
+        "tps": 26.33542,
+        "memory_kb": 777524,
+        "power_ma": 1122.8,
+        "thermal": "Normal"
+      },
+      "response": "The three states of matter are solid, liquid, and gas. These states are identified by the color or appearance of the substances and by their thermal properties. The color of a solid represents the temperature at which it is solid, while the color of a liquid represents the temperature at which it is liquid. The color of a gas represents the temperature at which it is moving faster than the speed of sound in that substance.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 7,
+      "question": "How does a refrigerator keep food cold?",
+      "run_id": "run_7_1783533079221",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 455,
+        "ttft_ms": 497,
+        "tps": 28.244856,
+        "memory_kb": 802452,
+        "power_ma": 1172.5,
+        "thermal": "Normal"
+      },
+      "response": "A refrigeration system in a refrigerator keeps food cold by depriving the food of oxygen and refrigerant (usually liquid nitrogen) needed to keep it at a temperature below its own freezing point. Food stored in a refrigerator loses moisture as it is exposed to the cold, which hardens its surface and prevents water from dripping off. The refrigeration process also removes heat from the food and improves the air circulation and temperature distribution around the food.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 8,
+      "question": "Explain the process of photosynthesis in plants.",
+      "run_id": "run_8_1783533085874",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 459,
+        "ttft_ms": 491,
+        "tps": 29.458199,
+        "memory_kb": 818052,
+        "power_ma": 946.6,
+        "thermal": "Normal"
+      },
+      "response": "Photosynthesis is a biological process in which plants use sunlight, water, and carbon dioxide to produce oxygen and energy. The process involves several steps:",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 9,
+      "question": "Summarize the theory of relativity in simple terms.",
+      "run_id": "run_9_1783533100164",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 457,
+        "ttft_ms": 544,
+        "tps": 29.54551,
+        "memory_kb": 809504,
+        "power_ma": 1003.7,
+        "thermal": "Normal"
+      },
+      "response": "Relativity is a theory of physics that suggests that space and time are influenced by the motion of objects, rather than being rigidly fixed. This means that objects appear to move at different rates or periods depending on their velocity.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 10,
+      "question": "Describe the causes and consequences of World War I in a few sentences.",
+      "run_id": "run_10_1783533110133",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 453,
+        "ttft_ms": 615,
+        "tps": 26.85048,
+        "memory_kb": 781784,
+        "power_ma": 1058.8,
+        "thermal": "Normal"
+      },
+      "response": "World War I, the first major global conflict, was caused by a combination of factors, including:",
+      "error": null,
+      "context_reset": false
+    }
+  ],
+  "summary": {
+    "ttft_ms": {
+      "mean": 520,
+      "std": 38.595,
+      "min": 467,
+      "max": 615
+    },
+    "tps": {
+      "mean": 24.835,
+      "std": 5.237,
+      "min": 10.731176,
+      "max": 29.54551
+    },
+    "memory_kb": {
+      "mean": 786636.4,
+      "std": 20801.293,
+      "min": 752560,
+      "max": 818052
+    },
+    "power_ma": {
+      "mean": 1132.86,
+      "std": 155.322,
+      "min": 922.2,
+      "max": 1458.1
+    },
+    "thermal_states_observed": [
+      "Normal"
+    ],
+    "note": "TPS/TTFT drift across the run reflects real device thermal state as it heats up under sustained inference, not measurement error.",
+    "rss_note": "peak_RSS_KB is only directly comparable across different models if each was benchmarked in a freshly restarted app process - this script now guarantees that automatically as of this version."
+  }
+}

@@ -1,0 +1,222 @@
+{
+  "run_info": {
+    "model": "qwen2.5-0.5b-instruct-q4_k_m.gguf",
+    "model_device_path": "/sdcard/Download/qwen2.5-0.5b-instruct-q4_k_m.gguf",
+    "device": "phone",
+    "quant": "Q4_K_M",
+    "start_time": "2026-07-08T17:49:05.413393+00:00",
+    "end_time": "2026-07-08T17:50:31.546336+00:00",
+    "total": 10,
+    "completed": 10,
+    "failed": 0,
+    "context_resets": 0,
+    "battery_warning": true,
+    "battery_level_pct": 84,
+    "battery_status": "Charging",
+    "rebooted_before_run": false,
+    "cold_load_note": "cold_load_ms reflects a genuinely cold read only if --reboot-before was used for this run. Without a reboot, the OS file cache may make cold_load_ms appear faster than a true cold read from storage, especially for larger model files."
+  },
+  "results": [
+    {
+      "question_number": 1,
+      "question": "What is the capital of France?",
+      "run_id": "run_1_1783532945413",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 427,
+        "ttft_ms": 428,
+        "tps": 20.575682,
+        "memory_kb": 733116,
+        "power_ma": 1663.5,
+        "thermal": "Normal"
+      },
+      "response": "As of October 2021, the capital of France is Paris.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 2,
+      "question": "Who wrote Romeo and Juliet?",
+      "run_id": "run_2_1783532950014",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 428,
+        "ttft_ms": 452,
+        "tps": 29.50717,
+        "memory_kb": 759124,
+        "power_ma": 1027.0,
+        "thermal": "Normal"
+      },
+      "response": "Romeo and Juliet was written by William Shakespeare. He lived from 1564 to 1569 and was an English playwright. The play was written in sonnets, which are a type of verse that is typically read or sung aloud in a rhythm. The sonnets are generally shorter than the longer plays in Shakespeare's output and were written to celebrate the shortness of life and the ideas of the playwright.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 3,
+      "question": "What is the chemical symbol for gold?",
+      "run_id": "run_3_1783532956623",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 446,
+        "ttft_ms": 422,
+        "tps": 13.675845,
+        "memory_kb": 774616,
+        "power_ma": 1772.9,
+        "thermal": "Normal"
+      },
+      "response": "The chemical symbol for gold is Au.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 4,
+      "question": "What is the largest planet in our solar system?",
+      "run_id": "run_4_1783532961037",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 445,
+        "ttft_ms": 496,
+        "tps": 29.275072,
+        "memory_kb": 742380,
+        "power_ma": 1258.8,
+        "thermal": "Normal"
+      },
+      "response": "The largest planet in our solar system is Neptune. It is the 4th-largest planet out of all 5 planets in our solar system. It has an average diameter of about 4.5 billion kilometers and a radius of about 2.36 billion kilometers. It is located at a distance of approximately 2.4 billion kilometers from the sun.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 5,
+      "question": "What year did the first human land on the moon?",
+      "run_id": "run_5_1783532966519",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 452,
+        "ttft_ms": 468,
+        "tps": 18.355537,
+        "memory_kb": 763884,
+        "power_ma": 1702.3,
+        "thermal": "Normal"
+      },
+      "response": "The first human landed on the moon on July 20, 1969.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 6,
+      "question": "What are the three states of matter?",
+      "run_id": "run_6_1783532970963",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 448,
+        "ttft_ms": 406,
+        "tps": 15.717035,
+        "memory_kb": 751952,
+        "power_ma": 1654.4,
+        "thermal": "Normal"
+      },
+      "response": "The three states of matter are liquid, solid, and gas.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 7,
+      "question": "How does a refrigerator keep food cold?",
+      "run_id": "run_7_1783532975392",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 445,
+        "ttft_ms": 455,
+        "tps": 33.639786,
+        "memory_kb": 808800,
+        "power_ma": 910.6,
+        "thermal": "Normal"
+      },
+      "response": "A refrigerator is a device that helps keep food cold for a long period of time. Here are the main ways it keeps food cold:",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 8,
+      "question": "Explain the process of photosynthesis in plants.",
+      "run_id": "run_8_1783532986386",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 444,
+        "ttft_ms": 428,
+        "tps": 29.185505,
+        "memory_kb": 817248,
+        "power_ma": 833.4,
+        "thermal": "Normal"
+      },
+      "response": "Photosynthesis is a process that occurs in the chloroplasts of plant cells and is responsible for producing glucose and releasing oxygen as a byproduct. The process of photosynthesis can be divided into two main stages: light-dependent reactions and light-independent reactions.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 9,
+      "question": "Summarize the theory of relativity in simple terms.",
+      "run_id": "run_9_1783533006160",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 437,
+        "ttft_ms": 463,
+        "tps": 31.277369,
+        "memory_kb": 811292,
+        "power_ma": 817.0,
+        "thermal": "Normal"
+      },
+      "response": "The theory of relativity is a branch of physics that explores the concepts of space, time, and motion in the context of the general relativity theory. It deals with the effects of the motion of particles in the presence of gravity, and the behavior of objects at different speeds and positions.",
+      "error": null,
+      "context_reset": false
+    },
+    {
+      "question_number": 10,
+      "question": "Describe the causes and consequences of World War I in a few sentences.",
+      "run_id": "run_10_1783533022728",
+      "status": "success",
+      "metrics": {
+        "cold_load_ms": 452,
+        "ttft_ms": 525,
+        "tps": 30.153599,
+        "memory_kb": 782880,
+        "power_ma": 994.6,
+        "thermal": "Normal"
+      },
+      "response": "World War I was a global conflict that took place from 1914 to 1918. The main causes of the war were nationalism, imperialism, and militarism. The impact of the war was far-reaching and included the loss of life, destruction of property, and the destruction of economies. The war resulted in the deaths of over 100 million people and left millions of people homeless. The war also had a significant impact on the economic and social structures of the world. The war led to the formation of new powers, the establishment of new borders, and the formation of alliances among countries. The war also led to the rise of totalitarianism in many countries, which had negative consequences for the political and social structures of those countries. Overall, World War I was a catastrophic event that had far-reaching consequences for the world.",
+      "error": null,
+      "context_reset": false
+    }
+  ],
+  "summary": {
+    "ttft_ms": {
+      "mean": 454.3,
+      "std": 34.302,
+      "min": 406,
+      "max": 525
+    },
+    "tps": {
+      "mean": 25.136,
+      "std": 6.89,
+      "min": 13.675845,
+      "max": 33.639786
+    },
+    "memory_kb": {
+      "mean": 774529.2,
+      "std": 28336.593,
+      "min": 733116,
+      "max": 817248
+    },
+    "power_ma": {
+      "mean": 1263.45,
+      "std": 374.431,
+      "min": 817.0,
+      "max": 1772.9
+    },
+    "thermal_states_observed": [
+      "Normal"
+    ],
+    "note": "TPS/TTFT drift across the run reflects real device thermal state as it heats up under sustained inference, not measurement error.",
+    "rss_note": "peak_RSS_KB is only directly comparable across different models if each was benchmarked in a freshly restarted app process - this script now guarantees that automatically as of this version."
+  }
+}
