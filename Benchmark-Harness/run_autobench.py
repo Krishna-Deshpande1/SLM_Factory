@@ -27,9 +27,9 @@ MAIN_ACTIVITY_COMPONENT = f"{PACKAGE}/.MainActivity"
 
 FALLBACK_ADB = str(Path.home() / "Library/Android/sdk/platform-tools/adb")
 
-CONVERT_SCRIPT = str(Path.home() / "model-conversion/convert_to_gguf.py")
+CONVERT_SCRIPT = str(Path.home() / "Model-Conversion/convert_to_gguf.py") 
 CONVERSION_REPORT_CANDIDATES = [
-    str(Path.home() / "model-conversion/conversion_report.json"),
+    str(Path.home() / "Model-Conversion/conversion_report.json"),
     str(Path.cwd() / "conversion_report.json"),
 ]
 
@@ -475,11 +475,21 @@ def compute_summary(results: list) -> dict:
         if r["status"] == "success" and r["metrics"] and r["metrics"].get("thermal")
     })
 
+    # Every question reloads the model now (context isolation), so only
+    # question 1's cold_load_ms is a genuine cold read - question 2+ reload
+    # within an already-booted, already-warm-cached process. Deliberately
+    # not averaged in with the rest.
+    first_q = next((r for r in results if r["question_number"] == 1), None)
+    first_cold_load_ms = None
+    if first_q and first_q["status"] == "success" and first_q["metrics"]:
+        first_cold_load_ms = first_q["metrics"].get("cold_load_ms")
+
     return {
         "ttft_ms": stat_block(vals("ttft_ms")),
         "tps": stat_block(vals("tps")),
         "memory_kb": stat_block(vals("memory_kb")),
         "power_ma": stat_block(vals("power_ma")),
+        "first_question_cold_load_ms": first_cold_load_ms,
         "thermal_states_observed": thermal_states,
         "note": (
             "TPS/TTFT drift across the run reflects real device thermal state "
@@ -506,6 +516,8 @@ def print_summary_table(summary: dict, run_info: dict):
             f"{(s[k] if s[k] is not None else 'N/A'):>12}" for k in ("mean", "std", "min", "max")
         )
         print(row)
+    cold_load_q1 = summary.get("first_question_cold_load_ms")
+    print(f"{'ColdLoad_Q1':<10}{(cold_load_q1 if cold_load_q1 is not None else 'N/A'):>12}{'N/A':>12}{'N/A':>12}{'N/A':>12}")
     print(f"\nThermal states observed: {', '.join(summary['thermal_states_observed']) or 'none'}")
     print(summary["note"])
     print(summary["rss_note"])

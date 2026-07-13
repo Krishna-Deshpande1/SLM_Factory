@@ -150,7 +150,7 @@ def convert_one(model: str, quant: str, output_dir: Path) -> dict:
     return {"ok": True, "local_path": local_path, "size_mb": size_mb}
 
 
-def benchmark_one(gguf_path: Path, questions_path, bench_output_path: Path) -> dict:
+def benchmark_one(gguf_path: Path, questions_path, bench_output_path: Path, verify_cold_load: bool = False) -> dict:
     """Run run_autobench.py against a local GGUF file and parse its summary.
 
     Returns {"ok": True, "ttft_ms": ..., "tps": ..., "memory_kb": ...} on
@@ -162,6 +162,8 @@ def benchmark_one(gguf_path: Path, questions_path, bench_output_path: Path) -> d
     cmd = [sys.executable, str(RUN_AUTOBENCH), "--model", str(gguf_path), "--output", str(bench_output_path)]
     if questions_path:
         cmd += ["--questions", str(questions_path)]
+    if verify_cold_load:
+        cmd += ["--reboot-before"]
 
     rc = run_subprocess(cmd)
     if rc != 0:
@@ -188,12 +190,14 @@ def benchmark_one(gguf_path: Path, questions_path, bench_output_path: Path) -> d
         "ttft_ms": summary.get("ttft_ms", {}).get("mean"),
         "tps": summary.get("tps", {}).get("mean"),
         "memory_kb": summary.get("memory_kb", {}).get("mean"),
+        "cold_load_ms": summary.get("first_question_cold_load_ms"),
         "completed": completed,
         "total": total,
     }
 
 
-def sweep(model: str, quant_levels: list, questions_path, budget_rss_mb: float, output_stem: str) -> list:
+def sweep(model: str, quant_levels: list, questions_path, budget_rss_mb: float, output_stem: str,
+          verify_cold_load: bool = False) -> list:
     output_dir = model_output_dir(model)
     results = []
 
@@ -222,7 +226,7 @@ def sweep(model: str, quant_levels: list, questions_path, budget_rss_mb: float, 
             continue
 
         bench_output_path = Path(f"{output_stem}_{level.lower()}_bench.json")
-        bench = benchmark_one(conv["local_path"], questions_path, bench_output_path)
+        bench = benchmark_one(conv["local_path"], questions_path, bench_output_path, verify_cold_load=verify_cold_load)
         if not bench["ok"]:
             print(f"[{level}] Benchmark failed: {bench['error']} -- skipping")
             results.append({
@@ -240,7 +244,17 @@ def sweep(model: str, quant_levels: list, questions_path, budget_rss_mb: float, 
         rss_disp = f"{rss_mb:.0f}MB" if rss_mb is not None else "N/A"
         ttft_disp = f"{ttft_ms:.0f}ms" if ttft_ms is not None else "N/A"
         tps_disp = f"{tps:.1f}" if tps is not None else "N/A"
-        print(f"\n[{level}] RSS={rss_disp} TTFT={ttft_disp} TPS={tps_disp} - checking...")
+
+        # Only surface ColdLoad when this level was actually rebooted before
+        # benchmarking - otherwise it's a warm reload within an
+        # already-booted process and would be a misleading number to show
+        # alongside genuinely cold-verified levels in the same sweep.
+        cold_load_ms = bench.get("cold_load_ms")
+        if verify_cold_load and cold_load_ms is not None:
+            cold_disp = f"ColdLoad={cold_load_ms:.0f}ms "
+        else:
+            cold_disp = ""
+        print(f"\n[{level}] {cold_disp}RSS={rss_disp} TTFT={ttft_disp} TPS={tps_disp} - checking...")
         print(f"  -> {'fits' if fits else 'EXCEEDS'} {budget_rss_mb:.0f}MB budget")
 
         results.append({
@@ -429,6 +443,8 @@ def parse_args():
     p.add_argument("--quant-levels", default="Q4_K_M,Q5_K_M,Q8_0", help="Comma-separated quant levels to sweep")
     p.add_argument("--questions", default=None, help="Path to questions file (default: run_autobench.py's built-in defaults)")
     p.add_argument("--output", default="agent_report.json")
+    p.add_argument("--verify-cold-load", action="store_true", dest="verify_cold_load",
+                    help="Reboot the device before each quant level's benchmark run (via run_autobench.py --reboot-before) for a genuine cold-load read, not just a warm-cache best case")
     return p.parse_args()
 
 
@@ -451,10 +467,12 @@ def main():
     print("=" * 60)
     print("Agentic Quantization Selector")
     print(f"  Model: {args.model}  Budget: {args.budget_rss_mb:.0f}MB RSS  Levels: {', '.join(quant_levels)}")
+    print(f"  Cold-load verification: {'ON (device reboots before each level)' if args.verify_cold_load else 'OFF (cold_load_ms is warm-cache best case)'}")
     print("=" * 60)
 
     output_stem = Path(args.output).with_suffix("").name
-    sweep_results = sweep(args.model, quant_levels, questions_path, args.budget_rss_mb, output_stem)
+    sweep_results = sweep(args.model, quant_levels, questions_path, args.budget_rss_mb, output_stem,
+                           verify_cold_load=args.verify_cold_load)
 
     candidates_within_budget = [r["quant"] for r in sweep_results if r["status"] == "success" and r["fits_budget"]]
 

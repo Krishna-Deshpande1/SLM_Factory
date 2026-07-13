@@ -4,14 +4,14 @@
     "model_device_path": "/sdcard/Download/qwen2.5-0.5b-instruct-q8_0.gguf",
     "device": "phone",
     "quant": "Q4_K_M",
-    "start_time": "2026-07-08T17:52:12.048336+00:00",
-    "end_time": "2026-07-08T17:53:29.525043+00:00",
+    "start_time": "2026-07-10T21:14:05.864440+00:00",
+    "end_time": "2026-07-10T21:15:22.597869+00:00",
     "total": 10,
     "completed": 10,
     "failed": 0,
     "context_resets": 0,
     "battery_warning": true,
-    "battery_level_pct": 85,
+    "battery_level_pct": 93,
     "battery_status": "Charging",
     "rebooted_before_run": false,
     "cold_load_note": "cold_load_ms reflects a genuinely cold read only if --reboot-before was used for this run. Without a reboot, the OS file cache may make cold_load_ms appear faster than a true cold read from storage, especially for larger model files."
@@ -20,14 +20,14 @@
     {
       "question_number": 1,
       "question": "What is the capital of France?",
-      "run_id": "run_1_1783533132048",
+      "run_id": "run_1_1783718045864",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 740,
-        "ttft_ms": 336,
-        "tps": 14.408332,
-        "memory_kb": 853500,
-        "power_ma": 1515.4,
+        "cold_load_ms": 387,
+        "ttft_ms": 314,
+        "tps": 15.460012,
+        "memory_kb": 828956,
+        "power_ma": 552.0,
         "thermal": "Normal"
       },
       "response": "The capital of France is Paris.",
@@ -37,31 +37,31 @@
     {
       "question_number": 2,
       "question": "Who wrote Romeo and Juliet?",
-      "run_id": "run_2_1783533136433",
+      "run_id": "run_2_1783718049277",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 438,
-        "ttft_ms": 334,
-        "tps": 27.781528,
-        "memory_kb": 880640,
-        "power_ma": 1121.4,
+        "cold_load_ms": 432,
+        "ttft_ms": 313,
+        "tps": 24.581327,
+        "memory_kb": 850304,
+        "power_ma": 554.0,
         "thermal": "Normal"
       },
-      "response": "\"Romeo and Juliet\" is a play written by William Shakespeare. It was first performed in 1599 and remains one of Shakespeare's most famous works. The play was set in the late medieval and early modern times, and it explores themes of love, betrayal, and the consequences of such relationships.",
+      "response": "\"The Red Rose\" is a poem by William Shakespeare. The play \"Romeo and Juliet\" is a tragedy written by William Shakespeare.",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 3,
       "question": "What is the chemical symbol for gold?",
-      "run_id": "run_3_1783533141925",
+      "run_id": "run_3_1783718053909",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 455,
-        "ttft_ms": 292,
-        "tps": 17.009768,
-        "memory_kb": 873320,
-        "power_ma": 1612.0,
+        "cold_load_ms": 450,
+        "ttft_ms": 300,
+        "tps": 17.196499,
+        "memory_kb": 867484,
+        "power_ma": 553.0,
         "thermal": "Normal"
       },
       "response": "The chemical symbol for gold is Au.",
@@ -71,148 +71,149 @@
     {
       "question_number": 4,
       "question": "What is the largest planet in our solar system?",
-      "run_id": "run_4_1783533145202",
+      "run_id": "run_4_1783718057333",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 455,
-        "ttft_ms": 347,
-        "tps": 14.074318,
-        "memory_kb": 888568,
-        "power_ma": 1548.5,
+        "cold_load_ms": 450,
+        "ttft_ms": 363,
+        "tps": 24.062567,
+        "memory_kb": 858508,
+        "power_ma": 553.9,
         "thermal": "Normal"
       },
-      "response": "The largest planet in our solar system is Mercury.",
+      "response": "The largest planet in our solar system is Mercury. It is approximately 4, 352 miles (about 7, 705 kilometers) in diameter and is the closest planet to the sun.",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 5,
       "question": "What year did the first human land on the moon?",
-      "run_id": "run_5_1783533149643",
+      "run_id": "run_5_1783718062094",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 457,
-        "ttft_ms": 339,
-        "tps": 28.597801,
-        "memory_kb": 894572,
-        "power_ma": 1461.5,
+        "cold_load_ms": 455,
+        "ttft_ms": 352,
+        "tps": 30.046198,
+        "memory_kb": 858884,
+        "power_ma": 555.6,
         "thermal": "Normal"
       },
-      "response": "The first human landing on the Moon was on July 20, 1969, at 21:19 UTC.",
+      "response": "The first human landed on the moon in 1969, during the Apollo 11 mission. This was just before the moon landing was officially announced and the moon landing was officially named Apollo 11. The moon landing was a significant achievement in human history and marked a breakthrough in space exploration.",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 6,
       "question": "What are the three states of matter?",
-      "run_id": "run_6_1783533154098",
+      "run_id": "run_6_1783718068046",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 460,
-        "ttft_ms": 286,
-        "tps": 30.257936,
-        "memory_kb": 884756,
-        "power_ma": 1329.1,
+        "cold_load_ms": 457,
+        "ttft_ms": 335,
+        "tps": 29.047358,
+        "memory_kb": 868140,
+        "power_ma": 556.5,
         "thermal": "Normal"
       },
-      "response": "There are three fundamental states of matter:",
+      "response": "Three states of matter are the gaseous, liquid, and solid states. Gaseous matter is a gas, liquid matter is a liquid, and solid matter is a solid.",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 7,
       "question": "How does a refrigerator keep food cold?",
-      "run_id": "run_7_1783533159658",
+      "run_id": "run_7_1783718072791",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 452,
-        "ttft_ms": 327,
-        "tps": 31.180704,
-        "memory_kb": 919660,
-        "power_ma": 1073.1,
+        "cold_load_ms": 454,
+        "ttft_ms": 316,
+        "tps": 31.326437,
+        "memory_kb": 854780,
+        "power_ma": 558.6,
         "thermal": "Normal"
       },
-      "response": "A refrigerator is a device that helps to keep food and other perishable items cold until they are ready to be consumed. There are several ways a refrigerator helps to keep food cold:",
+      "response": "A refrigerator works by utilizing the principle of refrigeration, which is the process of lowering the temperature of a substance (in this case, a solid or liquid) by drawing heat from an environment that is warmer, thereby cooling it. Here\u2019s a step-by-step breakdown of how a refrigerator keeps food cold:",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 8,
       "question": "Explain the process of photosynthesis in plants.",
-      "run_id": "run_8_1783533170787",
+      "run_id": "run_8_1783718090564",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 462,
-        "ttft_ms": 309,
-        "tps": 32.22273,
-        "memory_kb": 928708,
-        "power_ma": 1167.1,
+        "cold_load_ms": 456,
+        "ttft_ms": 300,
+        "tps": 31.078669,
+        "memory_kb": 860500,
+        "power_ma": 559.2,
         "thermal": "Normal"
       },
-      "response": "Photosynthesis is the process by which plants use sunlight, water, and carbon dioxide to produce glucose (certain compounds that are used in the formation of food) and oxygen. The main stages of photosynthesis are:",
+      "response": "Photosynthesis is the process by which plants use sunlight, water, and carbon dioxide to produce energy and oxygen. It is a crucial part of the food chain and plays a vital role in the environment.",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 9,
       "question": "Summarize the theory of relativity in simple terms.",
-      "run_id": "run_9_1783533186275",
+      "run_id": "run_9_1783718104798",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 458,
-        "ttft_ms": 363,
-        "tps": 32.94513,
-        "memory_kb": 906684,
-        "power_ma": 1178.0,
+        "cold_load_ms": 457,
+        "ttft_ms": 332,
+        "tps": 33.97379,
+        "memory_kb": 865696,
+        "power_ma": 560.1,
         "thermal": "Normal"
       },
-      "response": "Relativity is a scientific theory that explains the fundamental laws of physics as observed by different observers in different inertial frames of reference (i. e., frames in which no external forces can be applied to the system). Essentially, it suggests that the laws of physics are the same for all observers, regardless of their motion relative to each other or of their reference frame, and that the speed of light in a vacuum is the same for all observers, regardless of their relative motion.",
+      "response": "Relativity is a theory of physics that proposes that the laws of physics are the same for all observers regardless of their motion or frame of reference. This means that objects travel at different velocities relative to each other, and time passes differently for different observers. This theory was developed by Albert Einstein, and it has been tested and confirmed many times.",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 10,
       "question": "Describe the causes and consequences of World War I in a few sentences.",
-      "run_id": "run_10_1783533199564",
+      "run_id": "run_10_1783718110727",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 459,
-        "ttft_ms": 378,
-        "tps": 32.240726,
-        "memory_kb": 877416,
-        "power_ma": 1116.6,
+        "cold_load_ms": 458,
+        "ttft_ms": 374,
+        "tps": 31.48072,
+        "memory_kb": 873080,
+        "power_ma": 562.5,
         "thermal": "Normal"
       },
-      "response": "World War I, which began in 1914, was a conflict that caused many devastating consequences, including:",
+      "response": "World War I, also known as the First World War, was one of the largest and deadliest conflicts in history. It began in 1914 and lasted until 1918. The causes of World War I included:",
       "error": null,
       "context_reset": false
     }
   ],
   "summary": {
     "ttft_ms": {
-      "mean": 331.1,
-      "std": 27.628,
-      "min": 286,
-      "max": 378
+      "mean": 329.9,
+      "std": 24.655,
+      "min": 300,
+      "max": 374
     },
     "tps": {
-      "mean": 26.072,
-      "std": 7.336,
-      "min": 14.074318,
-      "max": 32.94513
+      "mean": 26.825,
+      "std": 6.008,
+      "min": 15.460012,
+      "max": 33.97379
     },
     "memory_kb": {
-      "mean": 890782.4,
-      "std": 21347.486,
-      "min": 853500,
-      "max": 928708
+      "mean": 858633.2,
+      "std": 11814.531,
+      "min": 828956,
+      "max": 873080
     },
     "power_ma": {
-      "mean": 1312.27,
-      "std": 195.059,
-      "min": 1073.1,
-      "max": 1612.0
+      "mean": 556.54,
+      "std": 3.271,
+      "min": 552.0,
+      "max": 562.5
     },
+    "first_question_cold_load_ms": 387,
     "thermal_states_observed": [
       "Normal"
     ],
