@@ -29,6 +29,8 @@ import io.shubham0204.smollmandroid.R
 import io.shubham0204.smollmandroid.data.AppDB
 import io.shubham0204.smollmandroid.llm.ModelsRepository
 import io.shubham0204.smollmandroid.llm.SmolLMManager
+import io.shubham0204.smollmandroid.llm.readCpuThermalZoneTempC
+import io.shubham0204.smollmandroid.llm.readSkinThermalTempC
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -44,6 +46,7 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.util.Date
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.abs
 
 /**
@@ -174,6 +177,14 @@ class BenchmarkService : Service() {
         // Fix 1: track the actual peak PowerManager status level, not just a crossed-threshold
         // boolean, so we can log its real name (Normal/Light/Moderate/Severe/Critical) below.
         val maxThermalStatus = AtomicInteger(PowerManager.THERMAL_STATUS_NONE)
+        // Real hardware temperature (°C), sampled every ~10th tick (roughly once per second),
+        // alongside the coarse PowerManager status above — see readCpuThermalZoneTempC() (raw
+        // CPU junction sensor) and readSkinThermalTempC() (the sensor OEM throttling policies
+        // typically key off instead). Same shared helpers ChatScreenViewModel's manual chat path
+        // uses, so both report temperature identically. 0f (the initial value) reads back as
+        // "unavailable" if the corresponding sensor is never readable on this device.
+        val maxCpuThermalTempC = AtomicReference(0f)
+        val maxSkinThermalTempC = AtomicReference(0f)
         val batteryManager   = getSystemService(Context.BATTERY_SERVICE) as BatteryManager
         val powerManager     = getSystemService(Context.POWER_SERVICE)   as PowerManager
         val chargeAtStart    = batteryManager.getLongProperty(
@@ -181,6 +192,7 @@ class BenchmarkService : Service() {
         )
 
         val monitorJob: Job = serviceScope.launch {
+            var tick = 0
             while (true) {
                 val sample = readCurrentUa(batteryManager)
                 if (sample > 0L) currentSamples.add(sample)
@@ -188,6 +200,15 @@ class BenchmarkService : Service() {
                     val status = powerManager.currentThermalStatus
                     if (status > maxThermalStatus.get()) maxThermalStatus.set(status)
                 }
+                if (tick % 10 == 0) {
+                    readCpuThermalZoneTempC()?.let { temp ->
+                        if (temp > maxCpuThermalTempC.get()) maxCpuThermalTempC.set(temp)
+                    }
+                    readSkinThermalTempC()?.let { temp ->
+                        if (temp > maxSkinThermalTempC.get()) maxSkinThermalTempC.set(temp)
+                    }
+                }
+                tick++
                 delay(100)
             }
         }
@@ -316,6 +337,16 @@ class BenchmarkService : Service() {
         Log.d("POWER",     "run_id=$runId value=${
             avgPowerMa?.let { "%.1f".format(it) } ?: "unsupported"}")
         Log.d("THERMAL",   "run_id=$runId value=$thermalStatus")
+        // Additive real-temperature readings alongside the coarse THERMAL status above — does
+        // not change or replace that line. THERMAL_TEMP_CPU is the raw CPU junction sensor (see
+        // readCpuThermalZoneTempC()); THERMAL_TEMP_SKIN is the skin-therm-usr sensor (see
+        // readSkinThermalTempC()), which OEM throttling policies more often key off.
+        val maxCpuTemp = maxCpuThermalTempC.get()
+        val maxSkinTemp = maxSkinThermalTempC.get()
+        Log.d("THERMAL_TEMP_CPU", "run_id=$runId value=${
+            if (maxCpuTemp > 0f) "%.1f".format(maxCpuTemp) else "unavailable"}")
+        Log.d("THERMAL_TEMP_SKIN", "run_id=$runId value=${
+            if (maxSkinTemp > 0f) "%.1f".format(maxSkinTemp) else "unavailable"}")
         Log.d("RUN_DONE",  "run_id=$runId response=${response.response}")
     }
 

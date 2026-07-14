@@ -35,7 +35,7 @@ CONVERSION_REPORT_CANDIDATES = [
 
 LOGCAT_TAG_FILTER = [
     "COLD_LOAD:D", "TTFT:D", "TPS:D", "MEMORY:D",
-    "POWER:D", "THERMAL:D", "RUN_DONE:D", "RUN_ERROR:D", "*:S",
+    "POWER:D", "THERMAL:D", "THERMAL_TEMP_CPU:D", "THERMAL_TEMP_SKIN:D", "RUN_DONE:D", "RUN_ERROR:D", "*:S",
 ]
 
 CONTEXT_SIZE_PHRASE = "context size reached"
@@ -268,7 +268,7 @@ def fire_broadcast(adb: Adb, model_path: str, question: str, run_id: str):
     ], timeout=20)
 
 
-KNOWN_TAGS = ["RUN_DONE", "RUN_ERROR", "COLD_LOAD", "TTFT", "TPS", "MEMORY", "POWER", "THERMAL"]
+KNOWN_TAGS = ["RUN_DONE", "RUN_ERROR", "COLD_LOAD", "TTFT", "TPS", "MEMORY", "POWER", "THERMAL_TEMP_CPU", "THERMAL_TEMP_SKIN", "THERMAL"]
 
 
 def parse_run_lines(logcat_text: str, run_id: str) -> dict:
@@ -377,6 +377,10 @@ def build_metrics(lines: dict) -> dict:
         "memory_kb": num("MEMORY", int),
         "power_ma": num("POWER", float),
         "thermal": extract_value(lines["THERMAL"]) if "THERMAL" in lines else None,
+        # "unavailable" fails the float() cast and num() already returns None
+        # on ValueError, which is exactly the "unknown reading" value we want.
+        "thermal_temp_cpu_c": num("THERMAL_TEMP_CPU", float),
+        "thermal_temp_skin_c": num("THERMAL_TEMP_SKIN", float),
     }
 
 
@@ -423,10 +427,16 @@ def run_benchmark(adb: Adb, model_path: str, questions: list, timeout: int) -> t
             entry["metrics"] = metrics
             entry["response"] = response
 
+            temp_parts = []
+            if metrics["thermal_temp_cpu_c"] is not None:
+                temp_parts.append(f"CPU:{metrics['thermal_temp_cpu_c']}°C")
+            if metrics["thermal_temp_skin_c"] is not None:
+                temp_parts.append(f"Skin:{metrics['thermal_temp_skin_c']}°C")
+            temp_suffix = f" ({' '.join(temp_parts)})" if temp_parts else ""
             print(f"\n[{n}/{total}] \"{question}\"")
             print(
                 f"  ColdLoad={metrics['cold_load_ms']}ms TTFT={metrics['ttft_ms']}ms TPS={metrics['tps']} "
-                f"RSS={metrics['memory_kb']}KB Power={metrics['power_ma']}mA Thermal={metrics['thermal']}"
+                f"RSS={metrics['memory_kb']}KB Power={metrics['power_ma']}mA Thermal={metrics['thermal']}{temp_suffix}"
             )
             preview = response if response and len(response) <= 160 else (response[:157] + "..." if response else "")
             print(f"  Response: \"{preview}\"")
@@ -489,6 +499,8 @@ def compute_summary(results: list) -> dict:
         "tps": stat_block(vals("tps")),
         "memory_kb": stat_block(vals("memory_kb")),
         "power_ma": stat_block(vals("power_ma")),
+        "thermal_temp_cpu_c": stat_block(vals("thermal_temp_cpu_c")),
+        "thermal_temp_skin_c": stat_block(vals("thermal_temp_skin_c")),
         "first_question_cold_load_ms": first_cold_load_ms,
         "thermal_states_observed": thermal_states,
         "note": (
@@ -510,7 +522,7 @@ def print_summary_table(summary: dict, run_info: dict):
     header = f"{'Metric':<10}{'Mean':>12}{'Std':>12}{'Min':>12}{'Max':>12}"
     print(header)
     print("-" * len(header))
-    for label, key in [("TTFT_ms", "ttft_ms"), ("TPS", "tps"), ("RSS_KB", "memory_kb"), ("Power_mA", "power_ma")]:
+    for label, key in [("TTFT_ms", "ttft_ms"), ("TPS", "tps"), ("RSS_KB", "memory_kb"), ("Power_mA", "power_ma"), ("ThermalCPU_C", "thermal_temp_cpu_c"), ("ThermalSkin_C", "thermal_temp_skin_c")]:
         s = summary[key]
         row = f"{label:<10}" + "".join(
             f"{(s[k] if s[k] is not None else 'N/A'):>12}" for k in ("mean", "std", "min", "max")

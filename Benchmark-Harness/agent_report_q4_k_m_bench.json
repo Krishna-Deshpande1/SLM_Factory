@@ -4,14 +4,14 @@
     "model_device_path": "/sdcard/Download/qwen2.5-0.5b-instruct-q4_k_m.gguf",
     "device": "phone",
     "quant": "Q4_K_M",
-    "start_time": "2026-07-10T21:10:47.973425+00:00",
-    "end_time": "2026-07-10T21:12:13.170939+00:00",
+    "start_time": "2026-07-13T02:18:32.249647+00:00",
+    "end_time": "2026-07-13T02:20:16.100054+00:00",
     "total": 10,
     "completed": 10,
     "failed": 0,
     "context_resets": 0,
     "battery_warning": true,
-    "battery_level_pct": 92,
+    "battery_level_pct": 84,
     "battery_status": "Charging",
     "rebooted_before_run": false,
     "cold_load_note": "cold_load_ms reflects a genuinely cold read only if --reboot-before was used for this run. Without a reboot, the OS file cache may make cold_load_ms appear faster than a true cold read from storage, especially for larger model files."
@@ -20,14 +20,14 @@
     {
       "question_number": 1,
       "question": "What is the capital of France?",
-      "run_id": "run_1_1783717847973",
+      "run_id": "run_1_1783909112250",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 388,
-        "ttft_ms": 421,
-        "tps": 12.601828,
-        "memory_kb": 696724,
-        "power_ma": 535.2,
+        "cold_load_ms": 438,
+        "ttft_ms": 415,
+        "tps": 9.411929,
+        "memory_kb": 724668,
+        "power_ma": 1387.7,
         "thermal": "Normal"
       },
       "response": "The capital of France is Paris.",
@@ -37,31 +37,31 @@
     {
       "question_number": 2,
       "question": "Who wrote Romeo and Juliet?",
-      "run_id": "run_2_1783717851466",
+      "run_id": "run_2_1783909116660",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 420,
-        "ttft_ms": 440,
-        "tps": 28.938847,
-        "memory_kb": 718124,
-        "power_ma": 534.0,
+        "cold_load_ms": 429,
+        "ttft_ms": 432,
+        "tps": 35.254906,
+        "memory_kb": 733400,
+        "power_ma": 1004.6,
         "thermal": "Normal"
       },
-      "response": "The play \"Romeo and Juliet\" was written by William Shakespeare, an English playwright and author who lived from 1564 to 1616. The play was first performed in 1599, though it was written and published later. It tells the story of two young lovers, Romeo and Juliet, who fall in love with each other but are rejected by their families and squabble over their rights to each other. The play is a complex and emotionally charged work that explores themes of love, friendship, and the clash between societal expectations and personal desires.",
+      "response": "Romeo and Juliet by William Shakespeare is a tragic poem written in iambic pentameter, which is a type of meter in English verse rhyming lines end with a stressed syllable. The poem was written between 1599 and 1599. The poem was first printed in 1599. The poem was first published in 1599. Romeo and Juliet is one of the most famous and tragic plays in the English language. It was first performed on April 18, 1597 in Shakespeare's theater in Stratford-upon-Avon. The play was first performed at Trinity College, Cambridge University, in 1599. The play was first performed in theaters in London and Venice. The play was first performed in England. The play was first performed in 1599. The plays Romeo and Juliet and Macbeth were both performed in the 19th century.",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 3,
       "question": "What is the chemical symbol for gold?",
-      "run_id": "run_3_1783717858504",
+      "run_id": "run_3_1783909125437",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 451,
-        "ttft_ms": 411,
-        "tps": 11.250856,
-        "memory_kb": 729876,
-        "power_ma": 535.0,
+        "cold_load_ms": 449,
+        "ttft_ms": 420,
+        "tps": 14.144872,
+        "memory_kb": 745044,
+        "power_ma": 1427.6,
         "thermal": "Normal"
       },
       "response": "The chemical symbol for gold is Au.",
@@ -71,14 +71,14 @@
     {
       "question_number": 4,
       "question": "What is the largest planet in our solar system?",
-      "run_id": "run_4_1783717863112",
+      "run_id": "run_4_1783909129874",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 449,
-        "ttft_ms": 472,
-        "tps": 29.54232,
-        "memory_kb": 718728,
-        "power_ma": 537.0,
+        "cold_load_ms": 441,
+        "ttft_ms": 475,
+        "tps": 34.265656,
+        "memory_kb": 754680,
+        "power_ma": 1050.6,
         "thermal": "Normal"
       },
       "response": "The largest planet in our solar system is Jupiter.",
@@ -88,132 +88,132 @@
     {
       "question_number": 5,
       "question": "What year did the first human land on the moon?",
-      "run_id": "run_5_1783717874691",
+      "run_id": "run_5_1783909141980",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 452,
-        "ttft_ms": 455,
-        "tps": 21.472055,
-        "memory_kb": 720436,
-        "power_ma": 534.2,
+        "cold_load_ms": 447,
+        "ttft_ms": 460,
+        "tps": 29.769016,
+        "memory_kb": 759876,
+        "power_ma": 1230.8,
         "thermal": "Normal"
       },
-      "response": "The first human landed on the Moon on July 20, 1969.",
+      "response": "The first human landed on the Moon on July 20, 1969. This was achieved by the Apollo 11 mission, which sent a crew of astronauts, Command Module Columbia and Lunar Module Eagle, to the Moon's surface. The mission was a massive effort to reach the Moon and bring back scientific and test equipment for returning to Earth.",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 6,
       "question": "What are the three states of matter?",
-      "run_id": "run_6_1783717879297",
+      "run_id": "run_6_1783909147494",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 457,
-        "ttft_ms": 415,
-        "tps": 17.129898,
-        "memory_kb": 727252,
-        "power_ma": 533.0,
+        "cold_load_ms": 458,
+        "ttft_ms": 411,
+        "tps": 19.629993,
+        "memory_kb": 775232,
+        "power_ma": 1347.8,
         "thermal": "Normal"
       },
-      "response": "Three states of matter are: solid, liquid, and gas.",
+      "response": "Three states of matter are:",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 7,
       "question": "How does a refrigerator keep food cold?",
-      "run_id": "run_7_1783717884005",
+      "run_id": "run_7_1783909156249",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 454,
-        "ttft_ms": 436,
-        "tps": 31.611454,
-        "memory_kb": 748216,
-        "power_ma": 536.6,
+        "cold_load_ms": 453,
+        "ttft_ms": 438,
+        "tps": 30.867126,
+        "memory_kb": 788808,
+        "power_ma": 1029.8,
         "thermal": "Normal"
       },
-      "response": "A refrigerated freezer, also known as a refrigerator, operates by utilizing the principle of **heat storage**. Here's how it works:",
+      "response": "A refrigerator is a device that helps keep food cold by removing heat from its surroundings. The process of keeping food cold occurs through a combination of several mechanisms:",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 8,
       "question": "Explain the process of photosynthesis in plants.",
-      "run_id": "run_8_1783717900374",
+      "run_id": "run_8_1783909171748",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 452,
-        "ttft_ms": 424,
-        "tps": 35.257725,
-        "memory_kb": 728572,
-        "power_ma": 537.7,
+        "cold_load_ms": 481,
+        "ttft_ms": 421,
+        "tps": 30.983202,
+        "memory_kb": 791720,
+        "power_ma": 1025.6,
         "thermal": "Normal"
       },
-      "response": "Photosynthesis is the process by which plants convert sunlight, water, and carbon dioxide into glucose and oxygen. It occurs in the leaves of plants and involves the conversion of light energy into chemical energy stored in glucose.",
+      "response": "Photosynthesis is the process by which plants convert sunlight, water, and carbon dioxide into energy and glucose. Here's a step-by-step explanation of the process:",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 9,
       "question": "Summarize the theory of relativity in simple terms.",
-      "run_id": "run_9_1783717912062",
+      "run_id": "run_9_1783909185187",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 452,
-        "ttft_ms": 464,
-        "tps": 31.837435,
-        "memory_kb": 754576,
-        "power_ma": 538.4,
+        "cold_load_ms": 463,
+        "ttft_ms": 484,
+        "tps": 34.24529,
+        "memory_kb": 802500,
+        "power_ma": 1000.0,
         "thermal": "Normal"
       },
-      "response": "The Theory of Relativity is a fundamental theory of physics that describes the relationship between space, time, and matter in the universe. It was developed by Albert Einstein in the early 20th century and is based on Einstein's special theory of relativity, which describes the behavior of objects moving at high speeds. The theory of relativity states that the laws of physics are the same for all observers in uniform motion relative to each other, and that the speed of light in a vacuum is constant for all observers, independent of the observer's motion.",
+      "response": "The theory of relativity is a set of equations developed by Albert Einstein in 1905 that describe the fundamental laws of physics in terms of space-time and the speed of light. Here are some key ideas from the theory of relativity in simple terms:",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 10,
       "question": "Describe the causes and consequences of World War I in a few sentences.",
-      "run_id": "run_10_1783717921414",
+      "run_id": "run_10_1783909197438",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 451,
-        "ttft_ms": 548,
-        "tps": 30.22614,
-        "memory_kb": 797860,
-        "power_ma": 540.5,
+        "cold_load_ms": 458,
+        "ttft_ms": 534,
+        "tps": 26.077837,
+        "memory_kb": 805344,
+        "power_ma": 1124.9,
         "thermal": "Normal"
       },
-      "response": "World War I (1914-1918) was a conflict that resulted from a series of interconnected causes and consequences. The causes of World War I included the tensions between Europe and the rest of the world, particularly in the Balkans and the Middle East, a rise in nationalism and militarism, territorial disputes, and political instability.",
+      "response": "World War I was a result of a complex interplay of political, economic, and social factors, leading to a massive-scale conflict between European countries. The causes of World War I were:",
       "error": null,
       "context_reset": false
     }
   ],
   "summary": {
     "ttft_ms": {
-      "mean": 448.6,
-      "std": 38.534,
+      "mean": 449,
+      "std": 37.259,
       "min": 411,
-      "max": 548
+      "max": 534
     },
     "tps": {
-      "mean": 24.987,
-      "std": 8.224,
-      "min": 11.250856,
-      "max": 35.257725
+      "mean": 26.465,
+      "std": 8.595,
+      "min": 9.411929,
+      "max": 35.254906
     },
     "memory_kb": {
-      "mean": 734036.4,
-      "std": 26180.761,
-      "min": 696724,
-      "max": 797860
+      "mean": 768127.2,
+      "std": 27345.562,
+      "min": 724668,
+      "max": 805344
     },
     "power_ma": {
-      "mean": 536.16,
-      "std": 2.188,
-      "min": 533.0,
-      "max": 540.5
+      "mean": 1162.94,
+      "std": 161.746,
+      "min": 1000.0,
+      "max": 1427.6
     },
-    "first_question_cold_load_ms": 388,
+    "first_question_cold_load_ms": 438,
     "thermal_states_observed": [
       "Normal"
     ],

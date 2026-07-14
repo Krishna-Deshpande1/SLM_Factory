@@ -39,6 +39,72 @@ import kotlin.time.measureTime
 private const val LOGTAG = "[SmolLMManager-Kt]"
 private val LOGD: (String) -> Unit = { Log.d(LOGTAG, it) }
 
+private val CPU_THERMAL_ZONE_PATHS = listOf(
+    "/sys/class/thermal/thermal_zone0/temp",
+    "/sys/class/thermal/thermal_zone1/temp",
+    "/sys/class/thermal/thermal_zone2/temp",
+)
+
+private const val THERMAL_CLASS_DIR = "/sys/class/thermal"
+private const val SKIN_THERMAL_ZONE_TYPE = "skin-therm-usr"
+
+/**
+ * Reads the device's raw CPU junction temperature in °C from the first readable thermal_zone
+ * sysfs path, trying each in order. These files report millidegree Celsius integers (e.g.
+ * "45231" means 45.231°C, hence the /1000 conversion). Returns null if none of the paths are
+ * readable (permissions/SELinux vary by device). This is a real, finer-grained temperature
+ * reading, complementing (not replacing) PowerManager's coarse THERMAL_STATUS_* level — but note
+ * it is NOT necessarily the sensor OEM throttling policies actually key off; see
+ * [readSkinThermalTempC] for that.
+ *
+ * Shared by both BenchmarkService (headless) and ChatScreenViewModel (manual chat) so both paths
+ * sample and report hardware temperature identically.
+ */
+fun readCpuThermalZoneTempC(): Float? {
+    for (path in CPU_THERMAL_ZONE_PATHS) {
+        try {
+            val millidegrees = File(path).readText().trim().toLongOrNull() ?: continue
+            return millidegrees / 1000f
+        } catch (_: Exception) {
+        }
+    }
+    return null
+}
+
+/**
+ * Reads the device's skin-temperature sensor in °C — the sensor many OEM throttling policies
+ * (e.g. OnePlus/OxygenOS) actually base their THERMAL_STATUS_* decisions on, unlike the raw CPU
+ * junction sensor read by [readCpuThermalZoneTempC]. Unlike the CPU junction sensor's fixed
+ * thermal_zone0-2 path list, the skin sensor's zone number varies by device and can even shift
+ * across reboots, so this never hardcodes a zone number: it scans every
+ * /sys/class/thermal/thermal_zoneN/type file present and uses whichever zone's type is exactly
+ * "skin-therm-usr". Returns null if no such zone exists, or its type/temp files aren't readable.
+ *
+ * Shared by both BenchmarkService (headless) and ChatScreenViewModel (manual chat).
+ */
+fun readSkinThermalTempC(): Float? {
+    val zoneDirs = File(THERMAL_CLASS_DIR)
+        .listFiles { file -> file.isDirectory && file.name.startsWith("thermal_zone") }
+        ?: return null
+
+    for (zoneDir in zoneDirs) {
+        val type = try {
+            File(zoneDir, "type").readText().trim()
+        } catch (_: Exception) {
+            continue
+        }
+        if (type != SKIN_THERMAL_ZONE_TYPE) continue
+
+        return try {
+            val millidegrees = File(zoneDir, "temp").readText().trim().toLongOrNull() ?: return null
+            millidegrees / 1000f
+        } catch (_: Exception) {
+            null
+        }
+    }
+    return null
+}
+
 @Single
 class SmolLMManager(private val appDB: AppDB) {
     private val instance = SmolLM()

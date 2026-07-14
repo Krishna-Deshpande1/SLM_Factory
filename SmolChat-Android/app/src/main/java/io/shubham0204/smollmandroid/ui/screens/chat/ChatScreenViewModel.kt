@@ -41,6 +41,8 @@ import io.shubham0204.smollmandroid.data.SystemPromptsStore
 import io.shubham0204.smollmandroid.data.Task
 import io.shubham0204.smollmandroid.llm.ModelsRepository
 import io.shubham0204.smollmandroid.llm.SmolLMManager
+import io.shubham0204.smollmandroid.llm.readCpuThermalZoneTempC
+import io.shubham0204.smollmandroid.llm.readSkinThermalTempC
 import io.shubham0204.smollmandroid.llm.speech2text.AudioTranscriptionService
 import io.shubham0204.smollmandroid.ui.components.createAlertDialog
 import io.shubham0204.smollmandroid.ui.screens.manage_asr.SETTING_DEF_VALUE_SPEECH2TEXT_CURR_MODEL_NAME
@@ -65,6 +67,7 @@ import java.io.File
 import java.util.Collections
 import java.util.Date
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.abs
 import kotlin.math.pow
 
@@ -82,6 +85,8 @@ data class InferenceMetrics(
     val coldLoadTimeMs: Long?,   // null = model was already warm, show nothing
     val avgCurrentUa: Long,      // Long.MIN_VALUE = unsupported hardware
     val thermalThrottled: Boolean,
+    val maxCpuThermalTempC: Float?,  // null = no CPU thermal_zone path was readable on this device
+    val maxSkinThermalTempC: Float?, // null = skin-therm-usr zone not found/readable
 )
 
 sealed class ChatScreenUIEvent {
@@ -758,7 +763,11 @@ class ChatScreenViewModel(
             onSuccess = {
                 val currentSamples = Collections.synchronizedList(mutableListOf<Long>())
                 val thermalThrottled = AtomicBoolean(false)
-                val (monitorJob, chargeAtStartUah) = startPowerThermalMonitoring(currentSamples, thermalThrottled)
+                val maxCpuThermalTempC = AtomicReference(0f)
+                val maxSkinThermalTempC = AtomicReference(0f)
+                val (monitorJob, chargeAtStartUah) = startPowerThermalMonitoring(
+                    currentSamples, thermalThrottled, maxCpuThermalTempC, maxSkinThermalTempC
+                )
                 val promptDispatchTimeMs = System.currentTimeMillis()
 
                 smolLMManager.getResponse(
@@ -780,7 +789,7 @@ class ChatScreenViewModel(
                     },
                     onSuccess = { response ->
                         monitorJob.cancel()
-                        val metrics = buildInferenceMetrics(response, currentSamples, thermalThrottled, chargeAtStartUah)
+                        val metrics = buildInferenceMetrics(response, currentSamples, thermalThrottled, chargeAtStartUah, maxCpuThermalTempC, maxSkinThermalTempC)
                         logMetrics(generateManualRunId(response.savedMessageId), metrics, response.response)
                         persistMessageMetrics(response.savedMessageId, metrics)
                         val updatedChat = chat.copy(contextSizeConsumed = response.contextLengthUsed)
@@ -841,7 +850,11 @@ class ChatScreenViewModel(
 
         val currentSamples = Collections.synchronizedList(mutableListOf<Long>())
         val thermalThrottled = AtomicBoolean(false)
-        val (monitorJob, chargeAtStartUah) = startPowerThermalMonitoring(currentSamples, thermalThrottled)
+        val maxCpuThermalTempC = AtomicReference(0f)
+        val maxSkinThermalTempC = AtomicReference(0f)
+        val (monitorJob, chargeAtStartUah) = startPowerThermalMonitoring(
+            currentSamples, thermalThrottled, maxCpuThermalTempC, maxSkinThermalTempC
+        )
         val promptDispatchTimeMs = System.currentTimeMillis()
 
         smolLMManager.getResponse(
@@ -852,7 +865,7 @@ class ChatScreenViewModel(
             saveToDb = false,
             onSuccess = { response ->
                 monitorJob.cancel()
-                val metrics = buildInferenceMetrics(response, currentSamples, thermalThrottled, chargeAtStartUah)
+                val metrics = buildInferenceMetrics(response, currentSamples, thermalThrottled, chargeAtStartUah, maxCpuThermalTempC, maxSkinThermalTempC)
                 logMetrics(generateManualRunId(response.savedMessageId), metrics, response.response)
                 _uiState.update { it.copy(isGeneratingResponse = false, inferenceMetrics = metrics) }
                 onComplete()
@@ -871,7 +884,13 @@ class ChatScreenViewModel(
     }
 
     /**
-     * Starts polling power current and monitoring thermal status.
+     * Starts polling power current, PowerManager thermal status, and (every ~10th tick, i.e.
+     * roughly once per second) real hardware temperature from two thermal_zone sysfs sensors —
+     * the coarse PowerManager status is known to lag actual thermal throttling on some devices,
+     * so this tracks real numbers alongside it: the raw CPU junction sensor
+     * (readCpuThermalZoneTempC) and the skin-therm-usr sensor (readSkinThermalTempC), which OEM
+     * throttling policies more often key off. Both max*ThermalTempC refs are left at their
+     * initial 0f (read back as "unavailable") if the corresponding sensor is never readable.
      * Returns (monitorJob, chargeCounterAtStartUah) — the charge counter snapshot is used as
      * a last-resort fallback to estimate average current when direct readings are unavailable.
      * chargeCounterAtStartUah == Long.MIN_VALUE means the device doesn't support the counter API.
@@ -879,11 +898,14 @@ class ChatScreenViewModel(
     private fun startPowerThermalMonitoring(
         currentSamples: MutableList<Long>,
         thermalThrottled: AtomicBoolean,
+        maxCpuThermalTempC: AtomicReference<Float>,
+        maxSkinThermalTempC: AtomicReference<Float>,
     ): Pair<Job, Long> {
         val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
         val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
         val chargeAtStart = batteryManager.getLongProperty(BatteryManager.BATTERY_PROPERTY_CHARGE_COUNTER)
         val job = viewModelScope.launch(Dispatchers.IO) {
+            var tick = 0
             while (true) {
                 val sample = readCurrentUa(batteryManager)
                 if (sample > 0L) currentSamples.add(sample)
@@ -892,6 +914,15 @@ class ChatScreenViewModel(
                         thermalThrottled.set(true)
                     }
                 }
+                if (tick % 10 == 0) {
+                    readCpuThermalZoneTempC()?.let { temp ->
+                        if (temp > maxCpuThermalTempC.get()) maxCpuThermalTempC.set(temp)
+                    }
+                    readSkinThermalTempC()?.let { temp ->
+                        if (temp > maxSkinThermalTempC.get()) maxSkinThermalTempC.set(temp)
+                    }
+                }
+                tick++
                 delay(100)
             }
         }
@@ -922,8 +953,12 @@ class ChatScreenViewModel(
         currentSamples: List<Long>,
         thermalThrottled: AtomicBoolean,
         chargeAtStartUah: Long,
+        maxCpuThermalTempC: AtomicReference<Float>,
+        maxSkinThermalTempC: AtomicReference<Float>,
     ): InferenceMetrics {
         val avgCurrentUa = computeAvgCurrentUa(currentSamples, chargeAtStartUah, response.generationTimeSecs)
+        val cpuTemp = maxCpuThermalTempC.get()
+        val skinTemp = maxSkinThermalTempC.get()
         return InferenceMetrics(
             ttftMs = response.ttftMs,
             decodeTps = response.generationSpeed,
@@ -931,6 +966,8 @@ class ChatScreenViewModel(
             coldLoadTimeMs = smolLMManager.getColdLoadTimeMs(),
             avgCurrentUa = avgCurrentUa,
             thermalThrottled = thermalThrottled.get(),
+            maxCpuThermalTempC = if (cpuTemp > 0f) cpuTemp else null,
+            maxSkinThermalTempC = if (skinTemp > 0f) skinTemp else null,
         )
     }
 
@@ -989,6 +1026,14 @@ class ChatScreenViewModel(
         Log.d("MEMORY",    "run_id=$runId value=${m.peakRssKb}")
         Log.d("POWER",     "run_id=$runId value=${avgPowerMa?.let { "%.1f".format(it) } ?: "unsupported"}")
         Log.d("THERMAL",   "run_id=$runId value=$thermalStatus")
+        // Additive real-temperature readings alongside the coarse THERMAL status above — does
+        // not change or replace that line. THERMAL_TEMP_CPU is the raw CPU junction sensor (see
+        // readCpuThermalZoneTempC()); THERMAL_TEMP_SKIN is the skin-therm-usr sensor (see
+        // readSkinThermalTempC()), which OEM throttling policies more often key off.
+        Log.d("THERMAL_TEMP_CPU", "run_id=$runId value=${
+            m.maxCpuThermalTempC?.let { "%.1f".format(it) } ?: "unavailable"}")
+        Log.d("THERMAL_TEMP_SKIN", "run_id=$runId value=${
+            m.maxSkinThermalTempC?.let { "%.1f".format(it) } ?: "unavailable"}")
         Log.d("RUN_DONE",  "run_id=$runId response=$responseText")
     }
 
