@@ -1,17 +1,17 @@
 {
   "run_info": {
-    "model": "qwen2.5-0.5b-instruct-q5_k_m.gguf",
-    "model_device_path": "/sdcard/Download/qwen2.5-0.5b-instruct-q5_k_m.gguf",
+    "model": "qwen3-0.6b-q5_k_m.gguf",
+    "model_device_path": "/sdcard/Android/data/io.shubham0204.smollmandroid/files/qwen3-0.6b-q5_k_m.gguf",
     "device": "phone",
     "quant": "Q4_K_M",
-    "start_time": "2026-07-13T02:20:27.022881+00:00",
-    "end_time": "2026-07-13T02:23:01.749645+00:00",
+    "start_time": "2026-07-15T04:29:46.920444+00:00",
+    "end_time": "2026-07-15T04:34:04.022690+00:00",
     "total": 10,
     "completed": 10,
     "failed": 0,
     "context_resets": 0,
     "battery_warning": true,
-    "battery_level_pct": 85,
+    "battery_level_pct": 100,
     "battery_status": "Charging",
     "rebooted_before_run": false,
     "cold_load_note": "cold_load_ms reflects a genuinely cold read only if --reboot-before was used for this run. Without a reboot, the OS file cache may make cold_load_ms appear faster than a true cold read from storage, especially for larger model files."
@@ -20,200 +20,232 @@
     {
       "question_number": 1,
       "question": "What is the capital of France?",
-      "run_id": "run_1_1783909227023",
+      "run_id": "run_1_1784089786922",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 657,
-        "ttft_ms": 598,
-        "tps": 6.5439396,
-        "memory_kb": 741860,
-        "power_ma": 1465.5,
-        "thermal": "Normal"
+        "cold_load_ms": 535,
+        "ttft_ms": 803,
+        "tps": 15.476478,
+        "memory_kb": 1044152,
+        "power_ma": 298.8,
+        "thermal": "Normal",
+        "thermal_temp_cpu_c": 55.6,
+        "thermal_temp_skin_c": 43.3
       },
-      "response": "The capital of France is Paris.",
+      "response": "<think>",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 2,
       "question": "Who wrote Romeo and Juliet?",
-      "run_id": "run_2_1783909231404",
+      "run_id": "run_2_1784089798003",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 442,
-        "ttft_ms": 648,
-        "tps": 12.894819,
-        "memory_kb": 757072,
-        "power_ma": 1261.0,
-        "thermal": "Normal"
+        "cold_load_ms": 573,
+        "ttft_ms": 852,
+        "tps": 15.641379,
+        "memory_kb": 1064476,
+        "power_ma": 298.9,
+        "thermal": "Normal",
+        "thermal_temp_cpu_c": 56.7,
+        "thermal_temp_skin_c": 44.1
       },
-      "response": "Romeo and Juliet is a play written by William Shakespeare. The play is considered one of Shakespeare's greatest works and is widely regarded as one of the greatest plays in the English language. The play is set during the early years of the English Renaissance and explores the themes of love, jealousy, and the tragic consequences of unrequited love. The play has been performed by actors since its first performance in 1603 and remains a beloved love story that continues to be performed to this day.",
+      "response": "<think>",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 3,
       "question": "What is the chemical symbol for gold?",
-      "run_id": "run_3_1783909242650",
+      "run_id": "run_3_1784089815377",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 456,
-        "ttft_ms": 588,
-        "tps": 8.000768,
-        "memory_kb": 772080,
-        "power_ma": 1466.0,
-        "thermal": "Normal"
+        "cold_load_ms": 597,
+        "ttft_ms": 804,
+        "tps": 16.37189,
+        "memory_kb": 1062256,
+        "power_ma": 299.1,
+        "thermal": "Normal",
+        "thermal_temp_cpu_c": 56.0,
+        "thermal_temp_skin_c": 44.1
       },
-      "response": "The chemical symbol for gold is Au.",
+      "response": "<think>",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 4,
       "question": "What is the largest planet in our solar system?",
-      "run_id": "run_4_1783909247062",
+      "run_id": "run_4_1784089826585",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 446,
-        "ttft_ms": 685,
-        "tps": 13.161856,
-        "memory_kb": 773056,
-        "power_ma": 1400.0,
-        "thermal": "Normal"
+        "cold_load_ms": 600,
+        "ttft_ms": 922,
+        "tps": 15.893909,
+        "memory_kb": 1067560,
+        "power_ma": 298.2,
+        "thermal": "Normal",
+        "thermal_temp_cpu_c": 57.5,
+        "thermal_temp_skin_c": 44.5
       },
-      "response": "The largest planet in our solar system is Jupiter. It is the fifth planet from the Sun and is the largest and most massive of the planets in the solar system. Its diameter is approximately 142, 984 kilometers (90, 477 miles) and its mass is about 1.898 \u00d7 10\u00b2\u00b2 tons (or 2.284 \u00d7 10\u00b2\u00b2 metric tons).",
+      "response": "<think>",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 5,
       "question": "What year did the first human land on the moon?",
-      "run_id": "run_5_1783909257912",
+      "run_id": "run_5_1784089842821",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 462,
-        "ttft_ms": 681,
-        "tps": 12.820448,
-        "memory_kb": 780984,
-        "power_ma": 1381.9,
-        "thermal": "Normal"
+        "cold_load_ms": 612,
+        "ttft_ms": 899,
+        "tps": 15.761185,
+        "memory_kb": 1068516,
+        "power_ma": 298.3,
+        "thermal": "Normal",
+        "thermal_temp_cpu_c": 57.1,
+        "thermal_temp_skin_c": 44.7
       },
-      "response": "The first human landed on the Moon on July 20, 1969, and it was a success. The Moon landing was a significant achievement of the United States, and it helped to propel the space race and the development of the space industry. The spacecraft that landed on the Moon was called the Apollo 11 mission, and it was successful in sending humans to the Moon for the first time.",
+      "response": "<think>",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 6,
       "question": "What are the three states of matter?",
-      "run_id": "run_6_1783909267701",
+      "run_id": "run_6_1784089857768",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 462,
-        "ttft_ms": 588,
-        "tps": 12.720227,
-        "memory_kb": 790956,
-        "power_ma": 1405.2,
-        "thermal": "Normal"
+        "cold_load_ms": 608,
+        "ttft_ms": 812,
+        "tps": 15.261041,
+        "memory_kb": 1067980,
+        "power_ma": 298.5,
+        "thermal": "Normal",
+        "thermal_temp_cpu_c": 59.0,
+        "thermal_temp_skin_c": 45.1
       },
-      "response": "The three states of matter are:\u6c14\u6001\uff08gas\uff09, \u6db2\u6001\uff08liquid\uff09, \u56fa\u6001\uff08solid\uff09\u3002\u6c14\u6001\u5373\u65e0\u56fa\u5b9a\u5f62\u6001\uff0c\u5982\u6c14\u4f53\uff1b\u6db2\u6001\u5373\u6709\u56fa\u5b9a\u7684\u5f62\u6001\uff0c\u5982\u6c34\uff1b\u56fa\u6001\u5373\u6709\u56fa\u5b9a\u7684\u5f62\u6001\uff0c\u5982\u51b0\u3002",
+      "response": "<think>",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 7,
       "question": "How does a refrigerator keep food cold?",
-      "run_id": "run_7_1783909275322",
+      "run_id": "run_7_1784089877930",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 463,
-        "ttft_ms": 630,
-        "tps": 13.23953,
-        "memory_kb": 803424,
-        "power_ma": 1373.3,
-        "thermal": "Normal"
+        "cold_load_ms": 615,
+        "ttft_ms": 845,
+        "tps": 12.068711,
+        "memory_kb": 1094288,
+        "power_ma": 298.3,
+        "thermal": "Normal",
+        "thermal_temp_cpu_c": 59.0,
+        "thermal_temp_skin_c": 46.1
       },
-      "response": "A refrigerator is designed to keep food cold by preventing heat from entering the interior and cooling the food. Here are some of the ways a refrigerator keeps food cold:",
+      "response": "<think>",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 8,
       "question": "Explain the process of photosynthesis in plants.",
-      "run_id": "run_8_1783909309041",
+      "run_id": "run_8_1784089920505",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 462,
-        "ttft_ms": 632,
-        "tps": 13.175351,
-        "memory_kb": 809116,
-        "power_ma": 1375.4,
-        "thermal": "Normal"
+        "cold_load_ms": 614,
+        "ttft_ms": 842,
+        "tps": 10.818899,
+        "memory_kb": 1077088,
+        "power_ma": 298.3,
+        "thermal": "Normal",
+        "thermal_temp_cpu_c": 60.2,
+        "thermal_temp_skin_c": 47.1
       },
-      "response": "Photosynthesis is the process that plants use to convert sunlight, carbon dioxide, and water into glucose and oxygen. This process occurs in the leaves of plants and can be explained as follows:",
+      "response": "<think>",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 9,
       "question": "Summarize the theory of relativity in simple terms.",
-      "run_id": "run_9_1783909336121",
+      "run_id": "run_9_1784089976979",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 465,
-        "ttft_ms": 695,
-        "tps": 13.19059,
-        "memory_kb": 813112,
-        "power_ma": 1366.7,
-        "thermal": "Normal"
+        "cold_load_ms": 609,
+        "ttft_ms": 919,
+        "tps": 11.986012,
+        "memory_kb": 1064884,
+        "power_ma": 297.5,
+        "thermal": "Normal",
+        "thermal_temp_cpu_c": 60.6,
+        "thermal_temp_skin_c": 47.7
       },
-      "response": "The theory of relativity, also known as Einstein's theory of relativity, is a set of three fundamental theories that describe the relationship between mass and energy, time, and space.",
+      "response": "<think>",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 10,
       "question": "Describe the causes and consequences of World War I in a few sentences.",
-      "run_id": "run_10_1783909367617",
+      "run_id": "run_10_1784090012911",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 463,
-        "ttft_ms": 790,
-        "tps": 13.4187355,
-        "memory_kb": 818844,
-        "power_ma": 1377.0,
-        "thermal": "Normal"
+        "cold_load_ms": 611,
+        "ttft_ms": 1047,
+        "tps": 12.671702,
+        "memory_kb": 1065704,
+        "power_ma": 297.8,
+        "thermal": "Normal",
+        "thermal_temp_cpu_c": 61.4,
+        "thermal_temp_skin_c": 48.2
       },
-      "response": "World War I (1914-1918) was a global conflict that lasted from 30 years. It was caused by the desire for territorial expansion on both sides, the impact of the economic depression, the rivalry between imperialism, the presence of soldiers from different countries, and the changes in ideologies.",
+      "response": "<think>",
       "error": null,
       "context_reset": false
     }
   ],
   "summary": {
     "ttft_ms": {
-      "mean": 653.5,
-      "std": 58.999,
-      "min": 588,
-      "max": 790
+      "mean": 874.5,
+      "std": 71.424,
+      "min": 803,
+      "max": 1047
     },
     "tps": {
-      "mean": 11.917,
-      "std": 2.353,
-      "min": 6.5439396,
-      "max": 13.4187355
+      "mean": 14.195,
+      "std": 1.951,
+      "min": 10.818899,
+      "max": 16.37189
     },
     "memory_kb": {
-      "mean": 786050.4,
-      "std": 24182.459,
-      "min": 741860,
-      "max": 818844
+      "mean": 1067690.4,
+      "std": 11841.76,
+      "min": 1044152,
+      "max": 1094288
     },
     "power_ma": {
-      "mean": 1387.2,
-      "std": 54.442,
-      "min": 1261.0,
-      "max": 1466.0
+      "mean": 298.37,
+      "std": 0.463,
+      "min": 297.5,
+      "max": 299.1
     },
-    "first_question_cold_load_ms": 657,
+    "thermal_temp_cpu_c": {
+      "mean": 58.31,
+      "std": 1.916,
+      "min": 55.6,
+      "max": 61.4
+    },
+    "thermal_temp_skin_c": {
+      "mean": 45.49,
+      "std": 1.6,
+      "min": 43.3,
+      "max": 48.2
+    },
+    "first_question_cold_load_ms": 535,
     "thermal_states_observed": [
       "Normal"
     ],

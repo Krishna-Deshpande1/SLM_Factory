@@ -4,26 +4,33 @@
     "model_device_path": "/sdcard/Download/qwen2.5-0.5b-instruct-f16.gguf",
     "device": "phone",
     "quant": "Q4_K_M",
-    "start_time": "2026-07-07T23:03:23.089851+00:00",
-    "end_time": "2026-07-07T23:05:59.428049+00:00",
+    "start_time": "2026-07-15T02:51:45.210192+00:00",
+    "end_time": "2026-07-15T02:54:55.207847+00:00",
     "total": 10,
-    "completed": 10,
-    "failed": 0,
-    "context_resets": 0
+    "completed": 9,
+    "failed": 1,
+    "context_resets": 0,
+    "battery_warning": true,
+    "battery_level_pct": 91,
+    "battery_status": "Charging",
+    "rebooted_before_run": false,
+    "cold_load_note": "cold_load_ms reflects a genuinely cold read only if --reboot-before was used for this run. Without a reboot, the OS file cache may make cold_load_ms appear faster than a true cold read from storage, especially for larger model files."
   },
   "results": [
     {
       "question_number": 1,
       "question": "What is the capital of France?",
-      "run_id": "run_1_1783465403091",
+      "run_id": "run_1_1784083905210",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 450,
-        "ttft_ms": 1033,
-        "tps": 5.155288,
-        "memory_kb": 1291260,
-        "power_ma": 608.7,
-        "thermal": "Normal"
+        "cold_load_ms": 527,
+        "ttft_ms": 1427,
+        "tps": 3.472124,
+        "memory_kb": 1276612,
+        "power_ma": 820.0,
+        "thermal": "Normal",
+        "thermal_temp_cpu_c": 47.1,
+        "thermal_temp_skin_c": 40.4
       },
       "response": "The capital of France is Paris.",
       "error": null,
@@ -32,32 +39,36 @@
     {
       "question_number": 2,
       "question": "Who wrote Romeo and Juliet?",
-      "run_id": "run_2_1783465407881",
+      "run_id": "run_2_1784083911450",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 464,
-        "ttft_ms": 1106,
-        "tps": 14.879438,
-        "memory_kb": 1307544,
-        "power_ma": 606.8,
-        "thermal": "Normal"
+        "cold_load_ms": 537,
+        "ttft_ms": 1532,
+        "tps": 5.2349296,
+        "memory_kb": 1291628,
+        "power_ma": 818.1,
+        "thermal": "Normal",
+        "thermal_temp_cpu_c": 46.7,
+        "thermal_temp_skin_c": 40.5
       },
-      "response": "The characters in Romeo and Juliet were written by William Shakespeare, an English playwright and poet. The play is considered one of the greatest tragedy of all time and one of the most important works of literature in the English language. The story is set in the late 1590s and tells the story of Romeo (a young man) and Juliet (a girl) who fall in love and are killed by a plague, and their families who suffer the consequences. The play is renowned for its rich portrayal of love, corruption, and betrayal, and it remains one of the most iconic and loved plays of all time.",
+      "response": "The play \"Romeo and Juliet\" was written by William Shakespeare.",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 3,
       "question": "What is the chemical symbol for gold?",
-      "run_id": "run_3_1783465419987",
+      "run_id": "run_3_1784083917648",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 470,
-        "ttft_ms": 1018,
-        "tps": 5.707563,
-        "memory_kb": 1327768,
-        "power_ma": 606.5,
-        "thermal": "Normal"
+        "cold_load_ms": 562,
+        "ttft_ms": 1431,
+        "tps": 3.8130682,
+        "memory_kb": 1294460,
+        "power_ma": 815.1,
+        "thermal": "Normal",
+        "thermal_temp_cpu_c": 46.3,
+        "thermal_temp_skin_c": 40.3
       },
       "response": "The chemical symbol for gold is Au.",
       "error": null,
@@ -66,148 +77,169 @@
     {
       "question_number": 4,
       "question": "What is the largest planet in our solar system?",
-      "run_id": "run_4_1783465424903",
+      "run_id": "run_4_1784083923738",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 475,
-        "ttft_ms": 1204,
-        "tps": 5.566063,
-        "memory_kb": 1326012,
-        "power_ma": 604.8,
-        "thermal": "Normal"
+        "cold_load_ms": 549,
+        "ttft_ms": 1673,
+        "tps": 8.617384,
+        "memory_kb": 1300520,
+        "power_ma": 811.6,
+        "thermal": "Normal",
+        "thermal_temp_cpu_c": 51.7,
+        "thermal_temp_skin_c": 40.8
       },
-      "response": "The largest planet in our solar system is Jupiter.",
+      "response": "The largest planet in our solar system is Jupiter. It is also known as the \"Red Planet\" due to its reddish color. It is a gas giant planet with a diameter of around 142, 982 miles (227, 020 kilometers) and a mass of around 318, 242 million tons. It has a radius of around 86, 252 miles (139, 000 kilometers) and was discovered in 1610 by Dutch astronomer Christiaan Huygens. The planet has a strong magnetic field, a large number of moons, and a unique atmosphere made up of hydrogen and helium.",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 5,
       "question": "What year did the first human land on the moon?",
-      "run_id": "run_5_1783465429807",
+      "run_id": "run_5_1784083944711",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 467,
-        "ttft_ms": 1162,
-        "tps": 7.2128997,
-        "memory_kb": 1334112,
-        "power_ma": 603.7,
-        "thermal": "Normal"
+        "cold_load_ms": 550,
+        "ttft_ms": 1644,
+        "tps": 7.4609156,
+        "memory_kb": 1286472,
+        "power_ma": 807.1,
+        "thermal": "Normal",
+        "thermal_temp_cpu_c": 50.9,
+        "thermal_temp_skin_c": 40.9
       },
-      "response": "The first human landed on the moon in 1969.",
+      "response": "The first humans to land on the Moon were Neil Armstrong and Buzz Aldrin. They achieved this in 1969, which was the Apollo 11 mission. Armstrong famously said \"That's one small step for man, one giant leap for mankind.\"",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 6,
       "question": "What are the three states of matter?",
-      "run_id": "run_6_1783465435692",
+      "run_id": "run_6_1784083955778",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 480,
-        "ttft_ms": 1030,
-        "tps": 7.596933,
-        "memory_kb": 1352148,
-        "power_ma": 602.8,
-        "thermal": "Normal"
+        "cold_load_ms": 566,
+        "ttft_ms": 1421,
+        "tps": 5.6746855,
+        "memory_kb": 1265536,
+        "power_ma": 804.3,
+        "thermal": "Normal",
+        "thermal_temp_cpu_c": 49.4,
+        "thermal_temp_skin_c": 40.9
       },
-      "response": "There are three states of matter: solid, liquid, and gas.",
+      "response": "Three states of matter are known to the scientific community: solid, liquid, and gas.",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 7,
       "question": "How does a refrigerator keep food cold?",
-      "run_id": "run_7_1783465440512",
+      "run_id": "run_7_1784083963320",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 473,
-        "ttft_ms": 1098,
-        "tps": 15.450779,
-        "memory_kb": 1355004,
-        "power_ma": 605.1,
-        "thermal": "Normal"
+        "cold_load_ms": 569,
+        "ttft_ms": 1523,
+        "tps": 8.781891,
+        "memory_kb": 1287208,
+        "power_ma": 800.6,
+        "thermal": "Normal",
+        "thermal_temp_cpu_c": 52.5,
+        "thermal_temp_skin_c": 41.4
       },
-      "response": "A refrigerator is a device that keeps food cold by utilizing the principles of heat transfer. When food is placed in the refrigerator, it absorbs heat from the surrounding environment. As the food is exposed to the cold temperature, it gradually loses its warmth and temperature.",
+      "response": "A refrigerator is a device that helps keep food cold by utilizing a process called cryogenic freezing. The process involves the removal of heat to freeze the food. The heat is removed by an enclosed, pressurized compartment that circulates through the refrigerator's internal components and surrounding space. This temperature is maintained through a combination of refrigeration, mechanical action, and an evaporator. The refrigerator's mechanical action forces air to travel through a fan system that circulates the air through the interior of the refrigerator. This freshens the air and speeds up the cooling process. The evaporator is where the refrigerant (usually a refrigerant such as R134a) changes from a liquid to a vapor and is then expelled into the air. The refrigerant then returns to the evaporator to start the cycle all over again.",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 8,
       "question": "Explain the process of photosynthesis in plants.",
-      "run_id": "run_8_1783465458688",
+      "run_id": "run_8_1784083985934",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 476,
-        "ttft_ms": 1086,
-        "tps": 15.790262,
-        "memory_kb": 1372812,
-        "power_ma": 603.2,
-        "thermal": "Normal"
+        "cold_load_ms": 553,
+        "ttft_ms": 1520,
+        "tps": 8.659787,
+        "memory_kb": 1290068,
+        "power_ma": 795.8,
+        "thermal": "Normal",
+        "thermal_temp_cpu_c": 52.9,
+        "thermal_temp_skin_c": 41.7
       },
-      "response": "Photosynthesis is the process by which plants convert sunlight, carbon dioxide, and water into glucose and oxygen. Here's an explanation of the process of photosynthesis in plants:",
+      "response": "Photosynthesis is the process of converting light energy into chemical energy stored in molecules, primarily in glucose. This process occurs in the chloroplasts of plant cells, with the pigments chlorophyll and chlorophyll a. The light energy is absorbed by chlorophyll, which produces ATP and NADPH. The energy is then used to drive an electron transport chain, which generates energy in the form of ATP and NADPH. These molecules can then be used by the plant to conduct its activities. The end result is the production of glucose, which is used as a source of energy for the plant and as a building block for other molecules.",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 9,
       "question": "Summarize the theory of relativity in simple terms.",
-      "run_id": "run_9_1783465512393",
+      "run_id": "run_9_1784084004604",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 481,
-        "ttft_ms": 1209,
-        "tps": 15.299328,
-        "memory_kb": 1375008,
-        "power_ma": 602.6,
-        "thermal": "Normal"
+        "cold_load_ms": 553,
+        "ttft_ms": 1676,
+        "tps": 8.852446,
+        "memory_kb": 1316608,
+        "power_ma": 789.6,
+        "thermal": "Normal",
+        "thermal_temp_cpu_c": 53.6,
+        "thermal_temp_skin_c": 42.3
       },
-      "response": "Relativity is a theory that suggests that the laws of physics are the same for all observers, regardless of their relative motion or speed. This means that at any given moment, all observers in the same reference frame will see the same phenomena, even if they are moving at different speeds.",
+      "response": "The theory of relativity is a set of two-part theories that describe the relationship between space and time in the universe. The first part, the special theory of relativity, focuses on the idea that the laws of physics are the same for all observers, regardless of their relative motion. This means that objects moving at different speeds can experience time differently, and that the speed of light in a vacuum is constant for all observers, no matter their relative motion.",
       "error": null,
       "context_reset": false
     },
     {
       "question_number": 10,
       "question": "Describe the causes and consequences of World War I in a few sentences.",
-      "run_id": "run_10_1783465532909",
-      "status": "success",
-      "metrics": {
-        "cold_load_ms": 472,
-        "ttft_ms": 1376,
-        "tps": 15.504319,
-        "memory_kb": 1386656,
-        "power_ma": 603.6,
-        "thermal": "Normal"
+      "run_id": "run_10_1784084031908",
+      "status": "failed",
+      "metrics": null,
+      "response": null,
+      "error": {
+        "reason": "timeout",
+        "message": "No RUN_DONE/RUN_ERROR within 60s"
       },
-      "response": "World War I (1914-1918) was a global conflict that resulted in the deaths of over 8 million people and the devastation of millions more. The causes of World War I were complex and varied, but in part stem from the combination of ideologies, political and economic factors, and technological advancements. Here are some of the main causes and consequences of World War I:",
-      "error": null,
       "context_reset": false
     }
   ],
   "summary": {
     "ttft_ms": {
-      "mean": 1132.2,
-      "std": 104.258,
-      "min": 1018,
-      "max": 1376
+      "mean": 1538.556,
+      "std": 98.062,
+      "min": 1421,
+      "max": 1676
     },
     "tps": {
-      "mean": 10.816,
-      "std": 4.625,
-      "min": 5.155288,
-      "max": 15.790262
+      "mean": 6.73,
+      "std": 2.082,
+      "min": 3.472124,
+      "max": 8.852446
     },
     "memory_kb": {
-      "mean": 1342832.4,
-      "std": 29292.273,
-      "min": 1291260,
-      "max": 1386656
+      "mean": 1289901.333,
+      "std": 13495.196,
+      "min": 1265536,
+      "max": 1316608
     },
     "power_ma": {
-      "mean": 604.78,
-      "std": 1.904,
-      "min": 602.6,
-      "max": 608.7
+      "mean": 806.911,
+      "std": 9.749,
+      "min": 789.6,
+      "max": 820.0
     },
+    "thermal_temp_cpu_c": {
+      "mean": 50.122,
+      "std": 2.678,
+      "min": 46.3,
+      "max": 53.6
+    },
+    "thermal_temp_skin_c": {
+      "mean": 41.022,
+      "std": 0.623,
+      "min": 40.3,
+      "max": 42.3
+    },
+    "first_question_cold_load_ms": 527,
     "thermal_states_observed": [
       "Normal"
     ],

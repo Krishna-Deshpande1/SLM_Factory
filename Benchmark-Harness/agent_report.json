@@ -1,47 +1,43 @@
 {
-  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "model": "Qwen/Qwen3-0.6B",
   "budget_rss_mb": 900.0,
-  "timestamp": "2026-07-13T02:25:08.171066+00:00",
+  "timestamp": "2026-07-15T04:39:56.181658+00:00",
   "sweep_results": [
     {
       "quant": "Q4_K_M",
-      "file_size_mb": 379.4,
-      "peak_RSS_mb": 750.1,
-      "TTFT_ms": 449,
-      "TPS": 26.465,
-      "fits_budget": true,
+      "file_size_mb": 461.8,
+      "peak_RSS_mb": 980.8,
+      "TTFT_ms": 849.5,
+      "TPS": 12.693,
+      "fits_budget": false,
       "status": "success",
       "error": null
     },
     {
       "quant": "Q5_K_M",
-      "file_size_mb": 400.6,
-      "peak_RSS_mb": 767.6,
-      "TTFT_ms": 653.5,
-      "TPS": 11.917,
-      "fits_budget": true,
+      "file_size_mb": 525.8,
+      "peak_RSS_mb": 1042.7,
+      "TTFT_ms": 874.5,
+      "TPS": 14.195,
+      "fits_budget": false,
       "status": "success",
       "error": null
     },
     {
       "quant": "Q8_0",
-      "file_size_mb": 506.5,
-      "peak_RSS_mb": 872.0,
-      "TTFT_ms": 420.4,
-      "TPS": 14.122,
-      "fits_budget": true,
+      "file_size_mb": 767.5,
+      "peak_RSS_mb": 1275.6,
+      "TTFT_ms": 773.625,
+      "TPS": 13.257,
+      "fits_budget": false,
       "status": "success",
       "error": null
     }
   ],
-  "candidates_within_budget": [
-    "Q4_K_M",
-    "Q5_K_M",
-    "Q8_0"
-  ],
+  "candidates_within_budget": [],
   "recommendation": {
     "quant_level": "Q4_K_M",
-    "reasoning": "Deterministic fallback (no LLM reasoning): selected Q4_K_M because it has the highest TPS (26.465) among quant levels that fit within the 900MB RSS budget (candidates: Q4_K_M, Q5_K_M, Q8_0).",
+    "reasoning": "Deterministic fallback (no LLM reasoning): no tested quant level fit within the 900MB budget. Recommending Q4_K_M as the smallest available option (peak RSS 980.8MB, 81MB over budget). Consider a smaller model or a higher budget if this is a hard constraint.",
     "reasoning_source": "deterministic_fallback"
   }
 }

@@ -1,14 +1,14 @@
 {
   "run_info": {
-    "model": "qwen3-0.6b-q4_k_m.gguf",
-    "model_device_path": "/sdcard/Android/data/io.shubham0204.smollmandroid/files/qwen3-0.6b-q4_k_m.gguf",
+    "model": "qwen3-0.6b-f16.gguf",
+    "model_device_path": "/sdcard/Android/data/io.shubham0204.smollmandroid/files/qwen3-0.6b-f16.gguf",
     "device": "phone",
     "quant": "Q4_K_M",
-    "start_time": "2026-07-15T04:25:16.905187+00:00",
-    "end_time": "2026-07-15T04:29:29.810541+00:00",
+    "start_time": "2026-07-15T04:58:35.315397+00:00",
+    "end_time": "2026-07-15T05:11:55.708913+00:00",
     "total": 10,
-    "completed": 10,
-    "failed": 0,
+    "completed": 9,
+    "failed": 1,
     "context_resets": 0,
     "battery_warning": true,
     "battery_level_pct": 100,
@@ -20,17 +20,17 @@
     {
       "question_number": 1,
       "question": "What is the capital of France?",
-      "run_id": "run_1_1784089516905",
+      "run_id": "run_1_1784091515316",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 528,
-        "ttft_ms": 763,
-        "tps": 13.9368,
-        "memory_kb": 975460,
-        "power_ma": 334.9,
+        "cold_load_ms": 575,
+        "ttft_ms": 1792,
+        "tps": 7.156464,
+        "memory_kb": 1994584,
+        "power_ma": 243.9,
         "thermal": "Normal",
-        "thermal_temp_cpu_c": 48.6,
-        "thermal_temp_skin_c": 38.6
+        "thermal_temp_cpu_c": 53.2,
+        "thermal_temp_skin_c": 42.0
       },
       "response": "<think>",
       "error": null,
@@ -39,17 +39,17 @@
     {
       "question_number": 2,
       "question": "Who wrote Romeo and Juliet?",
-      "run_id": "run_2_1784089536802",
+      "run_id": "run_2_1784091535903",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 568,
-        "ttft_ms": 847,
-        "tps": 12.277014,
-        "memory_kb": 983960,
-        "power_ma": 321.4,
+        "cold_load_ms": 625,
+        "ttft_ms": 1921,
+        "tps": 7.4605246,
+        "memory_kb": 2019424,
+        "power_ma": 235.1,
         "thermal": "Normal",
-        "thermal_temp_cpu_c": 49.4,
-        "thermal_temp_skin_c": 39.4
+        "thermal_temp_cpu_c": 53.6,
+        "thermal_temp_skin_c": 42.5
       },
       "response": "<think>",
       "error": null,
@@ -58,17 +58,17 @@
     {
       "question_number": 3,
       "question": "What is the chemical symbol for gold?",
-      "run_id": "run_3_1784089564442",
+      "run_id": "run_3_1784091564698",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 602,
-        "ttft_ms": 784,
-        "tps": 13.868159,
-        "memory_kb": 996948,
-        "power_ma": 315.6,
+        "cold_load_ms": 643,
+        "ttft_ms": 1819,
+        "tps": 7.374067,
+        "memory_kb": 2017952,
+        "power_ma": 229.6,
         "thermal": "Normal",
-        "thermal_temp_cpu_c": 49.8,
-        "thermal_temp_skin_c": 39.6
+        "thermal_temp_cpu_c": 54.4,
+        "thermal_temp_skin_c": 43.3
       },
       "response": "<think>",
       "error": null,
@@ -77,17 +77,17 @@
     {
       "question_number": 4,
       "question": "What is the largest planet in our solar system?",
-      "run_id": "run_4_1784089578223",
+      "run_id": "run_4_1784091591965",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 602,
-        "ttft_ms": 907,
-        "tps": 13.2681875,
-        "memory_kb": 993208,
-        "power_ma": 313.9,
+        "cold_load_ms": 650,
+        "ttft_ms": 2108,
+        "tps": 7.284323,
+        "memory_kb": 2017344,
+        "power_ma": 217.8,
         "thermal": "Normal",
-        "thermal_temp_cpu_c": 49.8,
-        "thermal_temp_skin_c": 40.0
+        "thermal_temp_cpu_c": 55.2,
+        "thermal_temp_skin_c": 44.1
       },
       "response": "<think>",
       "error": null,
@@ -96,17 +96,17 @@
     {
       "question_number": 5,
       "question": "What year did the first human land on the moon?",
-      "run_id": "run_5_1784089591922",
+      "run_id": "run_5_1784091635007",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 621,
-        "ttft_ms": 872,
-        "tps": 13.656474,
-        "memory_kb": 1004904,
-        "power_ma": 311.6,
+        "cold_load_ms": 652,
+        "ttft_ms": 2022,
+        "tps": 7.417619,
+        "memory_kb": 2016596,
+        "power_ma": 18.3,
         "thermal": "Normal",
-        "thermal_temp_cpu_c": 50.9,
-        "thermal_temp_skin_c": 40.4
+        "thermal_temp_cpu_c": 55.6,
+        "thermal_temp_skin_c": 44.7
       },
       "response": "<think>",
       "error": null,
@@ -115,17 +115,17 @@
     {
       "question_number": 6,
       "question": "What are the three states of matter?",
-      "run_id": "run_6_1784089611796",
+      "run_id": "run_6_1784091664982",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 614,
-        "ttft_ms": 763,
-        "tps": 13.686042,
-        "memory_kb": 1001616,
-        "power_ma": 309.5,
+        "cold_load_ms": 666,
+        "ttft_ms": 1772,
+        "tps": 6.9434485,
+        "memory_kb": 2036588,
+        "power_ma": 22.0,
         "thermal": "Normal",
-        "thermal_temp_cpu_c": 50.9,
-        "thermal_temp_skin_c": 40.9
+        "thermal_temp_cpu_c": 56.3,
+        "thermal_temp_skin_c": 45.5
       },
       "response": "<think>",
       "error": null,
@@ -134,17 +134,17 @@
     {
       "question_number": 7,
       "question": "How does a refrigerator keep food cold?",
-      "run_id": "run_7_1784089628005",
+      "run_id": "run_7_1784091721143",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 612,
-        "ttft_ms": 810,
-        "tps": 11.811777,
-        "memory_kb": 1001348,
-        "power_ma": 307.8,
+        "cold_load_ms": 2021,
+        "ttft_ms": 1905,
+        "tps": 5.8295174,
+        "memory_kb": 2030116,
+        "power_ma": 10.5,
         "thermal": "Normal",
-        "thermal_temp_cpu_c": 51.7,
-        "thermal_temp_skin_c": 41.4
+        "thermal_temp_cpu_c": 60.6,
+        "thermal_temp_skin_c": 47.2
       },
       "response": "<think>",
       "error": null,
@@ -153,17 +153,17 @@
     {
       "question_number": 8,
       "question": "Explain the process of photosynthesis in plants.",
-      "run_id": "run_8_1784089659234",
+      "run_id": "run_8_1784091860519",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 612,
-        "ttft_ms": 830,
-        "tps": 10.308697,
-        "memory_kb": 1030216,
-        "power_ma": 305.6,
+        "cold_load_ms": 663,
+        "ttft_ms": 1889,
+        "tps": 5.6363754,
+        "memory_kb": 2000368,
+        "power_ma": 20.1,
         "thermal": "Normal",
-        "thermal_temp_cpu_c": 52.5,
-        "thermal_temp_skin_c": 42.3
+        "thermal_temp_cpu_c": 58.3,
+        "thermal_temp_skin_c": 47.6
       },
       "response": "<think>",
       "error": null,
@@ -172,36 +172,30 @@
     {
       "question_number": 9,
       "question": "Summarize the theory of relativity in simple terms.",
-      "run_id": "run_9_1784089709654",
-      "status": "success",
-      "metrics": {
-        "cold_load_ms": 612,
-        "ttft_ms": 890,
-        "tps": 11.319867,
-        "memory_kb": 1013236,
-        "power_ma": 303.5,
-        "thermal": "Normal",
-        "thermal_temp_cpu_c": 53.2,
-        "thermal_temp_skin_c": 42.8
+      "run_id": "run_9_1784092013534",
+      "status": "failed",
+      "metrics": null,
+      "response": null,
+      "error": {
+        "reason": "timeout",
+        "message": "No RUN_DONE/RUN_ERROR within 180s"
       },
-      "response": "<think>",
-      "error": null,
       "context_reset": false
     },
     {
       "question_number": 10,
       "question": "Describe the causes and consequences of World War I in a few sentences.",
-      "run_id": "run_10_1784089744841",
+      "run_id": "run_10_1784092272392",
       "status": "success",
       "metrics": {
-        "cold_load_ms": 611,
-        "ttft_ms": 1029,
-        "tps": 12.793365,
-        "memory_kb": 1042776,
-        "power_ma": 301.7,
+        "cold_load_ms": 580,
+        "ttft_ms": 2383,
+        "tps": 7.538235,
+        "memory_kb": 1974884,
+        "power_ma": 13.5,
         "thermal": "Normal",
-        "thermal_temp_cpu_c": 53.6,
-        "thermal_temp_skin_c": 43.3
+        "thermal_temp_cpu_c": 55.2,
+        "thermal_temp_skin_c": 44.3
       },
       "response": "<think>",
       "error": null,
@@ -210,42 +204,42 @@
   ],
   "summary": {
     "ttft_ms": {
-      "mean": 849.5,
-      "std": 76.73,
-      "min": 763,
-      "max": 1029
+      "mean": 1956.778,
+      "std": 181.848,
+      "min": 1772,
+      "max": 2383
     },
     "tps": {
-      "mean": 12.693,
-      "std": 1.171,
-      "min": 10.308697,
-      "max": 13.9368
+      "mean": 6.96,
+      "std": 0.678,
+      "min": 5.6363754,
+      "max": 7.538235
     },
     "memory_kb": {
-      "mean": 1004367.2,
-      "std": 19159.011,
-      "min": 975460,
-      "max": 1042776
+      "mean": 2011984,
+      "std": 17917.088,
+      "min": 1974884,
+      "max": 2036588
     },
     "power_ma": {
-      "mean": 312.55,
-      "std": 9.326,
-      "min": 301.7,
-      "max": 334.9
+      "mean": 112.311,
+      "std": 106.929,
+      "min": 10.5,
+      "max": 243.9
     },
     "thermal_temp_cpu_c": {
-      "mean": 51.04,
-      "std": 1.598,
-      "min": 48.6,
-      "max": 53.6
+      "mean": 55.822,
+      "std": 2.207,
+      "min": 53.2,
+      "max": 60.6
     },
     "thermal_temp_skin_c": {
-      "mean": 40.87,
-      "std": 1.479,
-      "min": 38.6,
-      "max": 43.3
+      "mean": 44.578,
+      "std": 1.819,
+      "min": 42.0,
+      "max": 47.6
     },
-    "first_question_cold_load_ms": 528,
+    "first_question_cold_load_ms": 575,
     "thermal_states_observed": [
       "Normal"
     ],

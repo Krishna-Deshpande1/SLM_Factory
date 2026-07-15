@@ -9,6 +9,7 @@ human interaction after launch.
 """
 
 import argparse
+import importlib.util
 import json
 import os
 import re
@@ -25,11 +26,21 @@ BROADCAST_ACTION = "com.smollmandroid.RUN_PROMPT"
 RECEIVER_COMPONENT = f"{PACKAGE}/.headless.HeadlessBenchmarkReceiver"
 MAIN_ACTIVITY_COMPONENT = f"{PACKAGE}/.MainActivity"
 
+# The app's own external files dir is exempt from scoped storage - unlike
+# /sdcard/Download/, BenchmarkService can read a model pushed here without
+# it having been manually imported through SmolChat's UI first (confirmed
+# via a real EACCES reading from Download otherwise).
+APP_FILES_DIR = f"/sdcard/Android/data/{PACKAGE}/files"
+
 FALLBACK_ADB = str(Path.home() / "Library/Android/sdk/platform-tools/adb")
 
-CONVERT_SCRIPT = str(Path.home() / "Model-Conversion/convert_to_gguf.py") 
+CONVERT_SCRIPT = str(Path.home() / "SLM_Factory_Krishna_Personal/Model-Conversion/convert_to_gguf.py")
+# Fallback locations only - the real, guaranteed location is computed
+# per-call in convert_to_gguf() once the model's output directory is known,
+# since we now pass --output explicitly rather than relying on the tool's
+# own "./output" default.
 CONVERSION_REPORT_CANDIDATES = [
-    str(Path.home() / "Model-Conversion/conversion_report.json"),
+    str(Path.home() / "SLM_Factory_Krishna_Personal/Model-Conversion/conversion_report.json"),
     str(Path.cwd() / "conversion_report.json"),
 ]
 
@@ -154,52 +165,24 @@ def check_battery(adb: Adb) -> dict:
 # Model resolution / conversion / deploy
 # ---------------------------------------------------------------------------
 
-def convert_to_gguf(model_id: str, quant: str) -> str:
-    print(f"\n[CONVERSION] Converting {model_id} to GGUF ({quant}) and deploying...")
-    if not os.path.exists(CONVERT_SCRIPT):
-        print(f"[ERROR] Conversion script not found: {CONVERT_SCRIPT}")
-        sys.exit(1)
+def push_to_app_files_dir(adb: Adb, local_path) -> str:
+    """Push a local GGUF file to the app's external files dir.
 
-    cmd = [sys.executable, CONVERT_SCRIPT, "--model", model_id, "--quant", quant, "--deploy"]
-    result = subprocess.run(cmd)
-    if result.returncode != 0:
-        print(f"[ERROR] Conversion failed for {model_id} (exit code {result.returncode})")
-        sys.exit(1)
-
-    report_path = next((p for p in CONVERSION_REPORT_CANDIDATES if os.path.exists(p)), None)
-    if not report_path:
-        print(f"[ERROR] conversion_report.json not found in any of: {CONVERSION_REPORT_CANDIDATES}")
-        sys.exit(1)
-
-    try:
-        with open(report_path) as f:
-            report = json.load(f)
-    except (json.JSONDecodeError, OSError) as e:
-        print(f"[ERROR] Failed to read conversion report {report_path}: {e}")
-        sys.exit(1)
-
-    device_path = report.get("device_path") or report.get("deployed_path")
-    if not device_path:
-        filename = report.get("filename") or (
-            os.path.basename(report["output_path"]) if report.get("output_path") else None
-        )
-        if not filename:
-            print(f"[ERROR] Could not determine deployed filename from conversion report: {report}")
-            sys.exit(1)
-        device_path = f"/sdcard/Download/{filename}"
-
-    print(f"[OK] Conversion + deploy complete. Device path: {device_path}")
-    return device_path
-
-
-def push_local_gguf(adb: Adb, local_path: str) -> str:
-    local_path = os.path.expanduser(local_path)
+    Shared by both model-resolution branches (a local .gguf path, and a
+    HuggingFace ID that gets converted first) so this is the one place that
+    decides where BenchmarkService can actually read a model from - unlike
+    /sdcard/Download/, this location is exempt from scoped storage and
+    doesn't require the model to have been manually imported through
+    SmolChat's UI first (confirmed via a real EACCES otherwise).
+    """
+    local_path = os.path.expanduser(str(local_path))
     if not os.path.exists(local_path):
         print(f"[ERROR] GGUF file not found: {local_path}")
         sys.exit(1)
 
     filename = os.path.basename(local_path)
-    device_path = f"/sdcard/Download/{filename}"
+    device_path = f"{APP_FILES_DIR}/{filename}"
+    adb.run(["shell", "mkdir", "-p", APP_FILES_DIR], timeout=15)
     print(f"\n[DEPLOY] Pushing {local_path} -> {device_path} ...")
     result = adb.run(["push", local_path, device_path], timeout=600)
     if result.returncode != 0:
@@ -209,17 +192,89 @@ def push_local_gguf(adb: Adb, local_path: str) -> str:
     return device_path
 
 
+def _load_convert_module():
+    """Load convert_to_gguf.py by file path so its model_prefix() - the only
+    deterministic naming logic it exposes - can be called directly rather
+    than reimplemented here, so this can't silently drift out of sync if
+    that logic ever changes. (The output *directory* has no such logic in
+    that script at all - --output is just a caller-supplied string, which
+    is exactly why the report went missing: nothing here ever told it
+    where to write, so it fell back to "./output".)
+    """
+    spec = importlib.util.spec_from_file_location("_convert_to_gguf_external", CONVERT_SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def convert_to_gguf(model_id: str, quant: str, adb: Adb) -> str:
+    print(f"\n[CONVERSION] Converting {model_id} to GGUF ({quant})...")
+    if not os.path.exists(CONVERT_SCRIPT):
+        print(f"[ERROR] Conversion script not found: {CONVERT_SCRIPT}")
+        sys.exit(1)
+
+    convert_module = _load_convert_module()
+    if not hasattr(convert_module, "model_prefix"):
+        print(f"[ERROR] {CONVERT_SCRIPT} no longer exposes model_prefix() - cannot compute a deterministic output directory")
+        sys.exit(1)
+    prefix = convert_module.model_prefix(model_id)
+
+    # Compute (and pass explicitly via --output) the same "output-<prefix>"
+    # directory agent_quantize.py already uses, so the report's location is
+    # guaranteed rather than left to the tool's own "./output" default.
+    output_dir = Path(CONVERT_SCRIPT).parent / f"output-{prefix}"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # --deploy makes the external script push its own copy to
+    # /sdcard/Download/ - harmless but redundant now, since we push our own
+    # copy to APP_FILES_DIR below (the location BenchmarkService can
+    # actually read without the model having been manually imported first).
+    cmd = [sys.executable, CONVERT_SCRIPT, "--model", model_id, "--output", str(output_dir), "--quant", quant, "--deploy"]
+    result = subprocess.run(cmd)
+    if result.returncode != 0:
+        print(f"[ERROR] Conversion failed for {model_id} (exit code {result.returncode})")
+        sys.exit(1)
+
+    report_candidates = [str(output_dir / "conversion_report.json")] + CONVERSION_REPORT_CANDIDATES
+    report_path = next((p for p in report_candidates if os.path.exists(p)), None)
+    if not report_path:
+        print(f"[ERROR] conversion_report.json not found in any of: {report_candidates}")
+        sys.exit(1)
+
+    try:
+        with open(report_path) as f:
+            report = json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"[ERROR] Failed to read conversion report {report_path}: {e}")
+        sys.exit(1)
+
+    # output_files maps quant level -> filename; the file lives alongside
+    # the report itself, in the same output directory.
+    filename = report.get("output_files", {}).get(quant)
+    if not filename:
+        print(f"[ERROR] '{quant}' missing from output_files in conversion report: {report}")
+        sys.exit(1)
+
+    local_gguf_path = Path(report_path).parent / filename
+    if not local_gguf_path.exists():
+        print(f"[ERROR] Converted GGUF not found on disk: {local_gguf_path}")
+        sys.exit(1)
+
+    print(f"[OK] Conversion complete: {local_gguf_path}")
+    return push_to_app_files_dir(adb, local_gguf_path)
+
+
 def resolve_model(model_arg: str, quant: str, adb: Adb) -> tuple:
     """Returns (device_path, display_model_name)."""
     expanded = os.path.expanduser(model_arg)
     is_local_gguf = model_arg.lower().endswith(".gguf") or os.path.isfile(expanded)
 
     if is_local_gguf:
-        device_path = push_local_gguf(adb, model_arg)
+        device_path = push_to_app_files_dir(adb, model_arg)
         return device_path, os.path.basename(expanded)
 
     if "/" in model_arg:
-        device_path = convert_to_gguf(model_arg, quant)
+        device_path = convert_to_gguf(model_arg, quant, adb)
         return device_path, model_arg
 
     print(f"[ERROR] --model '{model_arg}' is neither a local .gguf path nor a HuggingFace model ID (no '/').")
