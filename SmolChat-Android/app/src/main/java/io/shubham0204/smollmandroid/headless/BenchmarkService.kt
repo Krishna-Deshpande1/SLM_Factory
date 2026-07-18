@@ -150,6 +150,18 @@ class BenchmarkService : Service() {
         // metrics) land in the exact same chat the manual UI would show as "active".
         val targetChat = appDB.getRecentlyUsedChat() ?: appDB.loadDefaultChat()
 
+        // Keep the chat's "selected model" pointer (chat.llmModelId — the same field the manual
+        // model-switcher's updateChatLLMParams() writes) in sync with whatever was just
+        // benchmarked, so the chat header immediately reflects the most recently actually-used
+        // model. Runs on every single headless call, including every question in a
+        // run_autobench.py session and every quant level in an agent_quantize.py sweep — it's
+        // expected to change rapidly during a sweep rather than settle on a stable summary.
+        val modelId = resolveOrRegisterModelId(modelPath)
+        if (targetChat.llmModelId != modelId) {
+            targetChat.llmModelId = modelId
+            appDB.updateChat(targetChat)
+        }
+
         // Every headless call reloads the model before inference — deliberately, not an
         // optimization gap. See SmolLMManager.loadIsolatedSingleTurn() for why this is the only
         // way (without native/JNI changes) to guarantee each question is a genuinely fresh,
@@ -417,6 +429,32 @@ class BenchmarkService : Service() {
             )
             null
         }
+    }
+
+    /**
+     * Resolves [modelPath] to an LLMModel row id, so it can be written to chat.llmModelId — the
+     * same field the manual model-switcher (ChatScreenViewModel.updateChatLLMParams) uses,
+     * meaning both paths keep the chat header in sync through one shared field rather than two
+     * parallel ones.
+     *
+     * If a row for this exact path already exists (formally imported via the app's normal Import
+     * GGUF flow, or already registered by a previous headless run), reuse its id. Otherwise this
+     * is a model that only exists as our own headless_benchmark_cache copy — register a minimal
+     * row for it (name = file name, no url/chatTemplate/contextSize) so it can be referenced. This
+     * also means such a model becomes visible in the manual "Change Model" picker going forward,
+     * which is expected: headless and manual read from the same LLMModel table by design.
+     */
+    private fun resolveOrRegisterModelId(modelPath: String): Long {
+        modelsRepository.getAvailableModelsList().firstOrNull { it.path == modelPath }?.let { existing ->
+            return existing.id
+        }
+        return appDB.addModel(
+            name = File(modelPath).name,
+            url = "",
+            path = modelPath,
+            contextSize = 0,
+            chatTemplate = "",
+        )
     }
 
     /**

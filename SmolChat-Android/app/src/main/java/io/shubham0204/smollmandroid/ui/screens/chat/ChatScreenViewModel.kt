@@ -59,6 +59,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -232,13 +234,16 @@ class ChatScreenViewModel(
 
     /**
      * Load the model for the current chat. If chat is configured with a LLM (i.e. chat.llModelId !=
-     * -1), then load the model. If not, show the model list dialog. Once the model is finalized,
-     * read the system prompt and user messages from the database and add them to the model.
+     * -1), then load the model. If not, do nothing — new chats have no model assigned by default
+     * and no fallback/inheritance is applied; the header renders blank and MessageInput shows its
+     * own "select a model" prompt until one is assigned, either manually via the "Change Model"
+     * option or by a headless run targeting this chat. If chat.llmModelId points at a model that
+     * no longer exists (e.g. deleted), the select-model dialog is still shown below to recover
+     * from that dangling reference — that's a different scenario from a freshly created chat.
      */
     fun loadModel(onComplete: (ModelLoadingState) -> Unit = {}) {
         val chat = _uiState.value.chat
         if (chat.llmModelId == -1L) {
-            _uiState.update { it.copy(showSelectModelListDialog = true) }
             return
         }
         val model = modelsRepository.getModelFromId(chat.llmModelId)
@@ -645,6 +650,29 @@ class ChatScreenViewModel(
                                             .toImmutableList()
                                 )
                             }
+                        }
+                    }
+            }
+            launch {
+                // Reactive sync: re-fetch the currently open chat's row whenever it changes in
+                // the DB, regardless of which component wrote it — e.g. BenchmarkService calling
+                // AppDB.updateChat() from a headless run, not just this ViewModel's own writes.
+                // Room's Flow auto-invalidates on any write to the Chat table. Without this, the
+                // header only ever reflected llmModelId changes that this exact ViewModel
+                // instance itself triggered (switchChat/UpdateChatModel/etc.) — an external write
+                // never reached _uiState until the user left and re-entered the screen, which
+                // recreated the ViewModel and re-read the row fresh.
+                _uiState
+                    .map { it.chat.id }
+                    .distinctUntilChanged()
+                    .flatMapLatest { chatId -> appDB.getChatFlow(chatId) }
+                    .filterNotNull()
+                    .collect { freshChat ->
+                        _uiState.update { uiState ->
+                            // Preserve the transient llmModel lookup across the swap to avoid a
+                            // one-frame flicker; the collector below re-resolves it if llmModelId
+                            // actually changed, since that makes the merged chat object differ.
+                            uiState.copy(chat = freshChat.copy(llmModel = uiState.chat.llmModel))
                         }
                     }
             }

@@ -56,6 +56,13 @@ class AppDB(context: Context) {
     /** Get all chats from the database sorted by dateUsed in descending order. */
     fun getChats(): Flow<List<Chat>> = db.chatsDao().getChats()
 
+    /**
+     * Reactive observer for a single chat by id — emits whenever that row (or any row in the
+     * Chat table) changes, regardless of which component wrote it (e.g. a headless benchmark
+     * run's AppDB.updateChat() call from BenchmarkService, not just this app's own ViewModels).
+     */
+    fun getChatFlow(chatId: Long): Flow<Chat?> = db.chatsDao().getChatFlow(chatId)
+
     fun loadDefaultChat(): Chat {
         val defaultChat =
             if (getChatsCount() == 0L) {
@@ -162,7 +169,8 @@ class AppDB(context: Context) {
 
     // Models
 
-    fun addModel(name: String, url: String, path: String, contextSize: Int, chatTemplate: String) =
+    /** Inserts a new model row and returns its generated id. */
+    fun addModel(name: String, url: String, path: String, contextSize: Int, chatTemplate: String): Long =
         runBlocking(Dispatchers.IO) {
             db.llmModelDao()
                 .insertModels(
@@ -174,6 +182,7 @@ class AppDB(context: Context) {
                         chatTemplate = chatTemplate,
                     )
                 )
+                .first()
         }
 
     fun getModel(id: Long): LLMModel? = runBlocking(Dispatchers.IO) { db.llmModelDao().getModel(id) }

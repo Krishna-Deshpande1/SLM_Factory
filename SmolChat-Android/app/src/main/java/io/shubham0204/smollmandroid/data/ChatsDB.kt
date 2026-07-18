@@ -139,4 +139,12 @@ interface ChatsDao {
 
     @Query("SELECT * FROM Chat WHERE id = :chatId")
     fun getChat(chatId: Long): Chat
+
+    /**
+     * Reactive single-chat observer: Room auto-invalidates and re-emits whenever any write hits
+     * the Chat table, regardless of which component made that write (e.g. BenchmarkService
+     * calling AppDB.updateChat() from its own Service context, not just this app's ViewModels).
+     */
+    @Query("SELECT * FROM Chat WHERE id = :chatId")
+    fun getChatFlow(chatId: Long): Flow<Chat?>
 }
