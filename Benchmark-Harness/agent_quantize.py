@@ -196,7 +196,7 @@ def benchmark_one(gguf_path: Path, questions_path, bench_output_path: Path, veri
     }
 
 
-def sweep(model: str, quant_levels: list, questions_path, budget_rss_mb: float, output_stem: str,
+def sweep(model: str, quant_levels: list, questions_path, budget_rss_mb, budget_file_size_mb, output_stem: str,
           verify_cold_load: bool = False) -> list:
     output_dir = model_output_dir(model)
     results = []
@@ -210,7 +210,8 @@ def sweep(model: str, quant_levels: list, questions_path, budget_rss_mb: float, 
             print(f"[{level}] Unrecognized quant level (expected one of {KNOWN_QUANT_LEVELS}) -- skipping")
             results.append({
                 "quant": level, "file_size_mb": None, "peak_RSS_mb": None,
-                "TTFT_ms": None, "TPS": None, "fits_budget": False,
+                "TTFT_ms": None, "TPS": None,
+                "fits_file_size_budget": False, "fits_rss_budget": False, "fits_budget": False,
                 "status": "failed", "error": "unrecognized quant level",
             })
             continue
@@ -220,7 +221,8 @@ def sweep(model: str, quant_levels: list, questions_path, budget_rss_mb: float, 
             print(f"[{level}] Conversion failed: {conv['error']} -- skipping")
             results.append({
                 "quant": level, "file_size_mb": None, "peak_RSS_mb": None,
-                "TTFT_ms": None, "TPS": None, "fits_budget": False,
+                "TTFT_ms": None, "TPS": None,
+                "fits_file_size_budget": False, "fits_rss_budget": False, "fits_budget": False,
                 "status": "failed", "error": conv["error"],
             })
             continue
@@ -231,7 +233,8 @@ def sweep(model: str, quant_levels: list, questions_path, budget_rss_mb: float, 
             print(f"[{level}] Benchmark failed: {bench['error']} -- skipping")
             results.append({
                 "quant": level, "file_size_mb": conv["size_mb"], "peak_RSS_mb": None,
-                "TTFT_ms": None, "TPS": None, "fits_budget": False,
+                "TTFT_ms": None, "TPS": None,
+                "fits_file_size_budget": False, "fits_rss_budget": False, "fits_budget": False,
                 "status": "failed", "error": bench["error"],
             })
             continue
@@ -239,8 +242,21 @@ def sweep(model: str, quant_levels: list, questions_path, budget_rss_mb: float, 
         rss_mb = round(bench["memory_kb"] / 1024, 1) if bench["memory_kb"] is not None else None
         ttft_ms = bench["ttft_ms"]
         tps = round(bench["tps"], 3) if bench["tps"] is not None else None
-        fits = rss_mb is not None and rss_mb <= budget_rss_mb
+        file_size_mb = conv["size_mb"]
 
+        # A budget axis that wasn't requested is trivially satisfied, so the
+        # combined AND reduces to whichever axis (or both) is actually active.
+        fits_file_size_budget = (
+            True if budget_file_size_mb is None
+            else (file_size_mb is not None and file_size_mb <= budget_file_size_mb)
+        )
+        fits_rss_budget = (
+            True if budget_rss_mb is None
+            else (rss_mb is not None and rss_mb <= budget_rss_mb)
+        )
+        fits_budget = fits_file_size_budget and fits_rss_budget
+
+        size_disp = f"{file_size_mb:.0f}MB" if file_size_mb is not None else "N/A"
         rss_disp = f"{rss_mb:.0f}MB" if rss_mb is not None else "N/A"
         ttft_disp = f"{ttft_ms:.0f}ms" if ttft_ms is not None else "N/A"
         tps_disp = f"{tps:.1f}" if tps is not None else "N/A"
@@ -254,16 +270,24 @@ def sweep(model: str, quant_levels: list, questions_path, budget_rss_mb: float, 
             cold_disp = f"ColdLoad={cold_load_ms:.0f}ms "
         else:
             cold_disp = ""
-        print(f"\n[{level}] {cold_disp}RSS={rss_disp} TTFT={ttft_disp} TPS={tps_disp} - checking...")
-        print(f"  -> {'fits' if fits else 'EXCEEDS'} {budget_rss_mb:.0f}MB budget")
+        print(f"\n[{level}] {cold_disp}Size={size_disp} RSS={rss_disp} TTFT={ttft_disp} TPS={tps_disp} - checking...")
+
+        fit_desc = []
+        if budget_file_size_mb is not None:
+            fit_desc.append(f"size {'fits' if fits_file_size_budget else 'EXCEEDS'} {budget_file_size_mb:.0f}MB")
+        if budget_rss_mb is not None:
+            fit_desc.append(f"RSS {'fits' if fits_rss_budget else 'EXCEEDS'} {budget_rss_mb:.0f}MB")
+        print(f"  -> {' | '.join(fit_desc)}")
 
         results.append({
             "quant": level,
-            "file_size_mb": conv["size_mb"],
+            "file_size_mb": file_size_mb,
             "peak_RSS_mb": rss_mb,
             "TTFT_ms": ttft_ms,
             "TPS": tps,
-            "fits_budget": fits,
+            "fits_file_size_budget": fits_file_size_budget,
+            "fits_rss_budget": fits_rss_budget,
+            "fits_budget": fits_budget,
             "status": "success",
             "error": None,
         })
@@ -275,32 +299,65 @@ def sweep(model: str, quant_levels: list, questions_path, budget_rss_mb: float, 
 # Reasoning phase
 # ---------------------------------------------------------------------------
 
-def deterministic_recommendation(sweep_results: list, candidates_within_budget: list, budget_rss_mb: float) -> tuple:
+def _budget_desc(budget_rss_mb, budget_file_size_mb, joiner: str = "and") -> str:
+    bits = []
+    if budget_file_size_mb is not None:
+        bits.append(f"{budget_file_size_mb:.0f}MB file size")
+    if budget_rss_mb is not None:
+        bits.append(f"{budget_rss_mb:.0f}MB peak RSS")
+    return f" {joiner} ".join(bits)
+
+
+def deterministic_recommendation(sweep_results: list, candidates_within_budget: list,
+                                  budget_rss_mb, budget_file_size_mb) -> tuple:
     successful = [r for r in sweep_results if r["status"] == "success"]
+    budget_desc = _budget_desc(budget_rss_mb, budget_file_size_mb)
 
     if candidates_within_budget:
         candidates = [r for r in successful if r["quant"] in candidates_within_budget]
         best = max(candidates, key=lambda r: r["TPS"] if r["TPS"] is not None else -1)
         reasoning = (
             f"Deterministic fallback (no LLM reasoning): selected {best['quant']} because it has the "
-            f"highest TPS ({best['TPS']}) among quant levels that fit within the {budget_rss_mb:.0f}MB RSS "
-            f"budget (candidates: {', '.join(candidates_within_budget)})."
+            f"highest TPS ({best['TPS']}) among quant levels that satisfy {budget_desc} "
+            f"(candidates: {', '.join(candidates_within_budget)})."
         )
         return best["quant"], reasoning
 
     if not successful:
         return None, "Deterministic fallback (no LLM reasoning): no quant level completed benchmarking successfully; no recommendation possible."
 
-    smallest = min(successful, key=lambda r: r["peak_RSS_mb"] if r["peak_RSS_mb"] is not None else float("inf"))
-    over_by = (smallest["peak_RSS_mb"] - budget_rss_mb) if smallest["peak_RSS_mb"] is not None else None
-    over_str = f"{over_by:.0f}MB over" if over_by is not None else "an unknown amount over"
+    # Rank by proportional overage across whichever budgets are active, so a
+    # candidate that's only slightly over stays preferable to one wildly over,
+    # regardless of which axis (or both) is doing the constraining.
+    def overage_score(r):
+        score = 0.0
+        if budget_file_size_mb is not None and r["file_size_mb"] is not None:
+            score += max(0.0, (r["file_size_mb"] / budget_file_size_mb) - 1.0)
+        if budget_rss_mb is not None and r["peak_RSS_mb"] is not None:
+            score += max(0.0, (r["peak_RSS_mb"] / budget_rss_mb) - 1.0)
+        return score
+
+    closest = min(successful, key=overage_score)
+
+    miss_parts = []
+    if budget_file_size_mb is not None and closest["file_size_mb"] is not None:
+        if closest["file_size_mb"] > budget_file_size_mb:
+            miss_parts.append(f"file size {closest['file_size_mb'] - budget_file_size_mb:.0f}MB over the {budget_file_size_mb:.0f}MB budget")
+        else:
+            miss_parts.append(f"file size satisfies the {budget_file_size_mb:.0f}MB budget")
+    if budget_rss_mb is not None and closest["peak_RSS_mb"] is not None:
+        if closest["peak_RSS_mb"] > budget_rss_mb:
+            miss_parts.append(f"peak RSS {closest['peak_RSS_mb'] - budget_rss_mb:.0f}MB over the {budget_rss_mb:.0f}MB budget")
+        else:
+            miss_parts.append(f"peak RSS satisfies the {budget_rss_mb:.0f}MB budget")
+    miss_desc = "; ".join(miss_parts) if miss_parts else "a missing metric prevented a direct comparison"
+
     reasoning = (
-        f"Deterministic fallback (no LLM reasoning): no tested quant level fit within the "
-        f"{budget_rss_mb:.0f}MB budget. Recommending {smallest['quant']} as the smallest available option "
-        f"(peak RSS {smallest['peak_RSS_mb']}MB, {over_str} budget). Consider a smaller model or a higher "
-        f"budget if this is a hard constraint."
+        f"Deterministic fallback (no LLM reasoning): no tested quant level satisfied {budget_desc}. "
+        f"Recommending {closest['quant']} as the closest option ({miss_desc}). Consider a smaller model "
+        f"or a higher budget if this is a hard constraint."
     )
-    return smallest["quant"], reasoning
+    return closest["quant"], reasoning
 
 
 def extract_recommended_quant(text: str, tested_levels: list):
@@ -320,32 +377,35 @@ def extract_recommended_quant(text: str, tested_levels: list):
     return None
 
 
-def llm_recommendation(sweep_results: list, budget_rss_mb: float, model_name: str) -> tuple:
+def llm_recommendation(sweep_results: list, budget_rss_mb, budget_file_size_mb, model_name: str) -> tuple:
     import anthropic
 
     client = anthropic.Anthropic()
+    budget_desc = _budget_desc(budget_rss_mb, budget_file_size_mb, joiner="and")
 
     lines = []
     for r in sweep_results:
         if r["status"] == "success":
             lines.append(
                 f"{r['quant']}: file_size={r['file_size_mb']}MB peak_RSS={r['peak_RSS_mb']}MB "
-                f"TTFT={r['TTFT_ms']}ms TPS={r['TPS']} fits_budget={r['fits_budget']}"
+                f"TTFT={r['TTFT_ms']}ms TPS={r['TPS']} fits_file_size_budget={r['fits_file_size_budget']} "
+                f"fits_rss_budget={r['fits_rss_budget']}"
             )
         else:
             lines.append(f"{r['quant']}: FAILED ({r['error']})")
 
     prompt = f"""We benchmarked the model "{model_name}" at several GGUF quantization levels on a real Android phone.
-RSS budget: {budget_rss_mb:.0f}MB.
+Active budget(s): {budget_desc}.
 
 Results:
 {chr(10).join(lines)}
 
 Recommend which quantization level to deploy. Reason about the actual tradeoff - for example, a larger/faster
-quant level might be worth it if it still fits comfortably within budget, rather than always picking the
-smallest one that fits. If none fit the budget, recommend the closest option and explain by how much it
-exceeds budget and what the practical impact is. State your final recommended quant level clearly by name
-(e.g. Q4_K_M, Q5_K_M, or Q8_0)."""
+quant level might be worth it if it still satisfies the active budget(s), rather than always picking the
+smallest one that fits. If none satisfy every active budget, recommend the closest option and explain by how
+much it misses each budget and what the practical impact is. Be explicit about which budget(s) - file size,
+peak RSS, or both - your final recommendation actually satisfies. State your final recommended quant level
+clearly by name (e.g. Q4_K_M, Q5_K_M, or Q8_0)."""
 
     response = client.messages.create(
         model=CLAUDE_MODEL,
@@ -359,7 +419,8 @@ exceeds budget and what the practical impact is. State your final recommended qu
     return recommended, text
 
 
-def get_recommendation(sweep_results: list, candidates_within_budget: list, budget_rss_mb: float, model_name: str) -> tuple:
+def get_recommendation(sweep_results: list, candidates_within_budget: list,
+                        budget_rss_mb, budget_file_size_mb, model_name: str) -> tuple:
     """Returns (quant_level, reasoning_text, reasoning_source)."""
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     skip_reason = None
@@ -373,7 +434,7 @@ def get_recommendation(sweep_results: list, candidates_within_budget: list, budg
             skip_reason = "the 'anthropic' package is not installed (run: pip install anthropic)"
         else:
             try:
-                quant, text = llm_recommendation(sweep_results, budget_rss_mb, model_name)
+                quant, text = llm_recommendation(sweep_results, budget_rss_mb, budget_file_size_mb, model_name)
                 if quant is None:
                     print("[LLM] Claude responded but no tested quant level could be identified in the reasoning text; falling back to deterministic rule.")
                 else:
@@ -382,7 +443,7 @@ def get_recommendation(sweep_results: list, candidates_within_budget: list, budg
                 skip_reason = f"Claude API call failed: {e}"
 
     print(f"[LLM] Skipping LLM reasoning step: {skip_reason}. Falling back to deterministic rule.")
-    quant, reasoning = deterministic_recommendation(sweep_results, candidates_within_budget, budget_rss_mb)
+    quant, reasoning = deterministic_recommendation(sweep_results, candidates_within_budget, budget_rss_mb, budget_file_size_mb)
     return quant, reasoning, "deterministic_fallback"
 
 
@@ -390,34 +451,48 @@ def get_recommendation(sweep_results: list, candidates_within_budget: list, budg
 # Output
 # ---------------------------------------------------------------------------
 
-def print_summary_table(sweep_results: list, budget_rss_mb: float):
-    print("\n" + "=" * 78)
+def print_summary_table(sweep_results: list, budget_rss_mb, budget_file_size_mb):
+    print("\n" + "=" * 90)
     print("SWEEP SUMMARY")
-    print("=" * 78)
-    header = f"{'Quant':<10}{'Size(MB)':>10}{'RSS(MB)':>10}{'TTFT(ms)':>10}{'TPS':>8}{'Fits':>7}{'Status':>10}"
+    print("=" * 90)
+    header = f"{'Quant':<10}{'Size(MB)':>10}{'RSS(MB)':>10}{'TTFT(ms)':>10}{'TPS':>8}{'FitsSize':>10}{'FitsRSS':>9}{'Status':>10}"
     print(header)
     print("-" * len(header))
     for r in sweep_results:
         def fmt(v, spec=""):
             return format(v, spec) if v is not None else "N/A"
+
+        # "N/A" (not "YES") when a budget axis wasn't requested at all, so
+        # the table doesn't imply a check happened that never ran.
+        fits_size_disp = "N/A" if budget_file_size_mb is None else ("YES" if r["fits_file_size_budget"] else "NO")
+        fits_rss_disp = "N/A" if budget_rss_mb is None else ("YES" if r["fits_rss_budget"] else "NO")
+
         row = (
             f"{r['quant']:<10}"
             f"{fmt(r['file_size_mb'], '.0f'):>10}"
             f"{fmt(r['peak_RSS_mb'], '.0f'):>10}"
             f"{fmt(r['TTFT_ms'], '.0f'):>10}"
             f"{fmt(r['TPS'], '.1f'):>8}"
-            f"{('YES' if r['fits_budget'] else 'no'):>7}"
+            f"{fits_size_disp:>10}"
+            f"{fits_rss_disp:>9}"
             f"{r['status']:>10}"
         )
         print(row)
-    print(f"\nBudget: {budget_rss_mb:.0f}MB peak RSS")
+
+    budget_bits = []
+    if budget_file_size_mb is not None:
+        budget_bits.append(f"file size <= {budget_file_size_mb:.0f}MB")
+    if budget_rss_mb is not None:
+        budget_bits.append(f"peak RSS <= {budget_rss_mb:.0f}MB")
+    print(f"\nBudget: {' AND '.join(budget_bits)}")
 
 
-def save_report(output_path: str, model: str, budget_rss_mb: float, sweep_results: list,
+def save_report(output_path: str, model: str, budget_rss_mb, budget_file_size_mb, sweep_results: list,
                  candidates_within_budget: list, quant_level, reasoning: str, reasoning_source: str):
     report = {
         "model": model,
         "budget_rss_mb": budget_rss_mb,
+        "budget_file_size_mb": budget_file_size_mb,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "sweep_results": sweep_results,
         "candidates_within_budget": candidates_within_budget,
@@ -439,7 +514,10 @@ def save_report(output_path: str, model: str, budget_rss_mb: float, sweep_result
 def parse_args():
     p = argparse.ArgumentParser(description="Automated quantization selection agent for SmolChat/Android")
     p.add_argument("--model", required=True, help="HuggingFace model ID")
-    p.add_argument("--budget-rss-mb", required=True, type=float, dest="budget_rss_mb", help="Maximum acceptable Peak RSS in MB")
+    p.add_argument("--budget-rss-mb", type=float, default=None, dest="budget_rss_mb",
+                    help="Maximum acceptable Peak RSS in MB (optional; at least one of --budget-rss-mb / --budget-file-size-mb is required)")
+    p.add_argument("--budget-file-size-mb", type=float, default=None, dest="budget_file_size_mb",
+                    help="Maximum acceptable GGUF file size in MB (optional; at least one of --budget-rss-mb / --budget-file-size-mb is required)")
     p.add_argument("--quant-levels", default="Q4_K_M,Q5_K_M,Q8_0", help="Comma-separated quant levels to sweep")
     p.add_argument("--questions", default=None, help="Path to questions file (default: run_autobench.py's built-in defaults)")
     p.add_argument("--output", default="agent_report.json")
@@ -450,6 +528,10 @@ def parse_args():
 
 def main():
     args = parse_args()
+
+    if args.budget_rss_mb is None and args.budget_file_size_mb is None:
+        print("[ERROR] At least one of --budget-rss-mb or --budget-file-size-mb is required.")
+        sys.exit(1)
 
     quant_levels = [q.strip() for q in args.quant_levels.split(",") if q.strip()]
     if not quant_levels:
@@ -464,30 +546,32 @@ def main():
     else:
         questions_path = None
 
+    budget_desc = _budget_desc(args.budget_rss_mb, args.budget_file_size_mb, joiner="AND")
+
     print("=" * 60)
     print("Agentic Quantization Selector")
-    print(f"  Model: {args.model}  Budget: {args.budget_rss_mb:.0f}MB RSS  Levels: {', '.join(quant_levels)}")
+    print(f"  Model: {args.model}  Budget: {budget_desc}  Levels: {', '.join(quant_levels)}")
     print(f"  Cold-load verification: {'ON (device reboots before each level)' if args.verify_cold_load else 'OFF (cold_load_ms is warm-cache best case)'}")
     print("=" * 60)
 
     output_stem = Path(args.output).with_suffix("").name
-    sweep_results = sweep(args.model, quant_levels, questions_path, args.budget_rss_mb, output_stem,
-                           verify_cold_load=args.verify_cold_load)
+    sweep_results = sweep(args.model, quant_levels, questions_path, args.budget_rss_mb, args.budget_file_size_mb,
+                           output_stem, verify_cold_load=args.verify_cold_load)
 
     candidates_within_budget = [r["quant"] for r in sweep_results if r["status"] == "success" and r["fits_budget"]]
 
     print("\n" + "=" * 60)
     if candidates_within_budget:
-        print(f"[FILTER] Candidates within {args.budget_rss_mb:.0f}MB budget: {', '.join(candidates_within_budget)}")
+        print(f"[FILTER] Candidates satisfying {budget_desc}: {', '.join(candidates_within_budget)}")
     else:
-        print(f"[FILTER] NONE of the tested quant levels fit within the {args.budget_rss_mb:.0f}MB budget. Proceeding to reasoning phase anyway.")
+        print(f"[FILTER] NONE of the tested quant levels satisfy {budget_desc}. Proceeding to reasoning phase anyway.")
     print("=" * 60)
 
     quant_level, reasoning, reasoning_source = get_recommendation(
-        sweep_results, candidates_within_budget, args.budget_rss_mb, args.model
+        sweep_results, candidates_within_budget, args.budget_rss_mb, args.budget_file_size_mb, args.model
     )
 
-    print_summary_table(sweep_results, args.budget_rss_mb)
+    print_summary_table(sweep_results, args.budget_rss_mb, args.budget_file_size_mb)
 
     print("\n" + "=" * 60)
     print("RECOMMENDATION")
@@ -496,7 +580,7 @@ def main():
     print(f"Source: {reasoning_source}")
     print(f"Reasoning:\n{reasoning}")
 
-    save_report(args.output, args.model, args.budget_rss_mb, sweep_results,
+    save_report(args.output, args.model, args.budget_rss_mb, args.budget_file_size_mb, sweep_results,
                 candidates_within_budget, quant_level, reasoning, reasoning_source)
 
 

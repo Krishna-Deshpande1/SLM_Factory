@@ -1,14 +1,17 @@
 {
   "model": "Qwen/Qwen3-0.6B",
   "budget_rss_mb": 900.0,
-  "timestamp": "2026-07-15T04:39:56.181658+00:00",
+  "budget_file_size_mb": null,
+  "timestamp": "2026-07-16T04:05:55.636851+00:00",
   "sweep_results": [
     {
       "quant": "Q4_K_M",
       "file_size_mb": 461.8,
-      "peak_RSS_mb": 980.8,
-      "TTFT_ms": 849.5,
-      "TPS": 12.693,
+      "peak_RSS_mb": 994.8,
+      "TTFT_ms": 663.7,
+      "TPS": 16.896,
+      "fits_file_size_budget": true,
+      "fits_rss_budget": false,
       "fits_budget": false,
       "status": "success",
       "error": null
@@ -16,9 +19,11 @@
     {
       "quant": "Q5_K_M",
       "file_size_mb": 525.8,
-      "peak_RSS_mb": 1042.7,
-      "TTFT_ms": 874.5,
-      "TPS": 14.195,
+      "peak_RSS_mb": 1008.5,
+      "TTFT_ms": 1120.2,
+      "TPS": 11.129,
+      "fits_file_size_budget": true,
+      "fits_rss_budget": false,
       "fits_budget": false,
       "status": "success",
       "error": null
@@ -26,9 +31,11 @@
     {
       "quant": "Q8_0",
       "file_size_mb": 767.5,
-      "peak_RSS_mb": 1275.6,
-      "TTFT_ms": 773.625,
-      "TPS": 13.257,
+      "peak_RSS_mb": 1267.1,
+      "TTFT_ms": 722.25,
+      "TPS": 13.812,
+      "fits_file_size_budget": true,
+      "fits_rss_budget": false,
       "fits_budget": false,
       "status": "success",
       "error": null
@@ -37,7 +44,7 @@
   "candidates_within_budget": [],
   "recommendation": {
     "quant_level": "Q4_K_M",
-    "reasoning": "Deterministic fallback (no LLM reasoning): no tested quant level fit within the 900MB budget. Recommending Q4_K_M as the smallest available option (peak RSS 980.8MB, 81MB over budget). Consider a smaller model or a higher budget if this is a hard constraint.",
+    "reasoning": "Deterministic fallback (no LLM reasoning): no tested quant level satisfied 900MB peak RSS. Recommending Q4_K_M as the closest option (peak RSS 95MB over the 900MB budget). Consider a smaller model or a higher budget if this is a hard constraint.",
     "reasoning_source": "deterministic_fallback"
   }
 }

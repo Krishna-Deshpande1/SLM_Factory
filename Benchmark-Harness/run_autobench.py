@@ -44,14 +44,9 @@ CONVERSION_REPORT_CANDIDATES = [
     str(Path.cwd() / "conversion_report.json"),
 ]
 
-LOGCAT_TAG_FILTER = [
-    "COLD_LOAD:D", "TTFT:D", "TPS:D", "MEMORY:D",
-    "POWER:D", "THERMAL:D", "THERMAL_TEMP_CPU:D", "THERMAL_TEMP_SKIN:D", "RUN_DONE:D", "RUN_ERROR:D", "*:S",
-]
-
 CONTEXT_SIZE_PHRASE = "context size reached"
 
-COLD_BOOT_SETTLE_SECONDS = 25
+COLD_BOOT_SETTLE_SECONDS = 60
 
 COLD_LOAD_NOTE = (
     "cold_load_ms reflects a genuinely cold read only if --reboot-before was used for this run. "
@@ -362,12 +357,43 @@ def extract_error(line: str):
 
 
 def poll_for_result(adb: Adb, run_id: str, timeout: int) -> tuple:
-    """Poll logcat every 1s until RUN_DONE/RUN_ERROR for run_id or timeout. Returns (status, lines)."""
+    """Poll logcat every 1s until RUN_DONE/RUN_ERROR for run_id or timeout. Returns (status, lines).
+
+    Deliberately unfiltered ("adb logcat -d" with no -s tag list): confirmed
+    via repeated manual testing that server-side tag filtering sometimes
+    misses lines that are demonstrably present in the same buffer dump at
+    the same moment - a plain dump found them every time the filtered one
+    reported a timeout. All filtering happens Python-side in
+    parse_run_lines(), which searches raw text for run_id= and tag matches
+    and has no dependency on the input being pre-filtered by tag.
+    """
+    # TEMP DEBUG (grep "[DEBUG-POLL]" to find/remove all of it): diagnosing
+    # repeated --reboot-before-only poll timeouts where manual post-hoc
+    # checks confirm RUN_DONE is genuinely in the buffer. Need to see what
+    # each poll's own "adb logcat -d" call actually returns in real time -
+    # empty, truncated, identical stale content every cycle, or something
+    # else - rather than continuing to guess from retrospective checks.
+    start_time = time.time()
+    iteration = 0
+    previous_raw = None
+
     deadline = time.time() + timeout
     last_lines = {}
     while time.time() < deadline:
-        result = adb.run(["logcat", "-d", "-s"] + LOGCAT_TAG_FILTER, timeout=20)
-        last_lines = parse_run_lines(result.stdout, run_id)
+        iteration += 1
+        result = adb.run(["logcat", "-d"], timeout=30)
+        raw = result.stdout or ""
+
+        elapsed = time.time() - start_time
+        same_as_previous = raw == previous_raw
+        # print(
+        #     f"[DEBUG-POLL] iter={iteration} elapsed={elapsed:.1f}s len={len(raw)} "
+        #     f"returncode={result.returncode} same_as_prev_dump={same_as_previous}"
+        # )
+        # print(f"[DEBUG-POLL] first200={raw[:200]!r}")
+        previous_raw = raw
+
+        last_lines = parse_run_lines(raw, run_id)
         if "RUN_DONE" in last_lines:
             return "done", last_lines
         if "RUN_ERROR" in last_lines:
@@ -389,11 +415,18 @@ def reboot_device_for_cold_load(adb: Adb):
 
     "device" state from wait-for-device precedes the home screen and system
     services actually being ready, so we sleep an extra settle period on top.
+    Confirmed via manual testing: even after that settle period, adb logcat
+    itself can still be unattached to the device's logging daemon while the
+    device/app are otherwise fully responsive - a real inference completed
+    in ~2s but poll_for_result still timed out at 60s because logcat wasn't
+    capturing yet. A throwaway "adb logcat -d" here forces that connection
+    to establish before the real per-question polling begins.
     """
-    print("[COLD] Rebooting device for genuine cold-load measurement (this takes ~30-60s)...")
+    print("[COLD] Rebooting device for genuine cold-load measurement (this takes ~30-90s)...")
     adb.run(["reboot"], timeout=30)
     adb.run(["wait-for-device"], timeout=180)
     time.sleep(COLD_BOOT_SETTLE_SECONDS)
+    adb.run(["logcat", "-d"], timeout=20)
 
 
 def reset_smolchat_for_clean_process(adb: Adb):
