@@ -46,7 +46,24 @@ CONVERSION_REPORT_CANDIDATES = [
 
 CONTEXT_SIZE_PHRASE = "context size reached"
 
-COLD_BOOT_SETTLE_SECONDS = 60
+COLD_BOOT_SETTLE_SECONDS = 110
+
+# How long a given reboot takes to fully settle varies run to run (confirmed
+# via 4 clean --reboot-before runs: 2/4 had the first broadcast received
+# reliably, 2/4 never received it at all - same code/model, no manual
+# interference) - so the FIRST broadcast after a reboot specifically retries
+# until BROADCAST_RECEIVER confirms pickup, rather than assuming one attempt
+# is enough. Every other question, and every question in a non-reboot run,
+# is unaffected by these constants.
+#
+# COLD_BOOT_SETTLE_SECONDS was raised from 60 to 110: with a 60s settle, the
+# retry loop consistently needed all 5 attempts to succeed (~8s poll + 3s
+# delay per attempt, so ~50s spent retrying on top of the 60s settle) -
+# meaning the actual settle time needed is closer to 60+50=110s, not lower.
+# Retries remain as a safety net for run-to-run variance beyond this baseline.
+BROADCAST_RECEIPT_POLL_SECONDS = 8
+BROADCAST_RECEIPT_MAX_ATTEMPTS = 5
+BROADCAST_RECEIPT_RETRY_DELAY_SECONDS = 3
 
 COLD_LOAD_NOTE = (
     "cold_load_ms reflects a genuinely cold read only if --reboot-before was used for this run. "
@@ -90,7 +107,15 @@ class Adb:
 
     def run(self, args: list, timeout: int = 30) -> subprocess.CompletedProcess:
         try:
-            return subprocess.run(self.base + args, capture_output=True, text=True, timeout=timeout)
+            # encoding/errors instead of text=True: logcat buffers can
+            # contain invalid UTF-8 (more likely now that poll_for_result
+            # dumps the full unfiltered buffer), and text=True's strict
+            # decoding crashes the whole process on the first bad byte.
+            # errors="replace" substitutes instead.
+            return subprocess.run(
+                self.base + args, capture_output=True,
+                encoding="utf-8", errors="replace", timeout=timeout,
+            )
         except subprocess.TimeoutExpired:
             return subprocess.CompletedProcess(self.base + args, returncode=1, stdout="", stderr="TIMEOUT")
 
@@ -318,7 +343,7 @@ def fire_broadcast(adb: Adb, model_path: str, question: str, run_id: str):
     ], timeout=20)
 
 
-KNOWN_TAGS = ["RUN_DONE", "RUN_ERROR", "COLD_LOAD", "TTFT", "TPS", "MEMORY", "POWER", "THERMAL_TEMP_CPU", "THERMAL_TEMP_SKIN", "THERMAL"]
+KNOWN_TAGS = ["RUN_DONE", "RUN_ERROR", "BROADCAST_RECEIVER", "COLD_LOAD", "TTFT", "TPS", "MEMORY", "POWER", "THERMAL_TEMP_CPU", "THERMAL_TEMP_SKIN", "THERMAL"]
 
 
 def parse_run_lines(logcat_text: str, run_id: str) -> dict:
@@ -366,6 +391,15 @@ def poll_for_result(adb: Adb, run_id: str, timeout: int) -> tuple:
     reported a timeout. All filtering happens Python-side in
     parse_run_lines(), which searches raw text for run_id= and tag matches
     and has no dependency on the input being pre-filtered by tag.
+
+    "-b main" reads only the "main" on-device buffer - confirmed that's
+    where Android app Log.d() calls (i.e. every one of our custom tags)
+    actually land. An earlier "-b all" attempt confirmed the opposite
+    problem: it pulled in kernel/perf/radio/events noise (~1MB+, including
+    raw kernel boot messages) that's irrelevant to our tags and never
+    contains run_id, while still not finding it - so "-b all" wasn't
+    the fix. Scoping to "main" cuts the dump back down to just the
+    buffer that can possibly contain what we're looking for.
     """
     # TEMP DEBUG (grep "[DEBUG-POLL]" to find/remove all of it): diagnosing
     # repeated --reboot-before-only poll timeouts where manual post-hoc
@@ -381,16 +415,18 @@ def poll_for_result(adb: Adb, run_id: str, timeout: int) -> tuple:
     last_lines = {}
     while time.time() < deadline:
         iteration += 1
-        result = adb.run(["logcat", "-d"], timeout=30)
+        result = adb.run(["logcat", "-d", "-b", "main"], timeout=30)
         raw = result.stdout or ""
 
         elapsed = time.time() - start_time
         same_as_previous = raw == previous_raw
-        # print(
-        #     f"[DEBUG-POLL] iter={iteration} elapsed={elapsed:.1f}s len={len(raw)} "
-        #     f"returncode={result.returncode} same_as_prev_dump={same_as_previous}"
-        # )
-        # print(f"[DEBUG-POLL] first200={raw[:200]!r}")
+        run_id_present = run_id in raw
+        print(
+            f"[DEBUG-POLL] iter={iteration} elapsed={elapsed:.1f}s len={len(raw)} "
+            f"returncode={result.returncode} same_as_prev_dump={same_as_previous}"
+        )
+        print(f"[DEBUG-POLL] run_id={run_id!r} run_id_in_raw_text={run_id_present}")
+        print(f"[DEBUG-POLL] first200={raw[:200]!r}")
         previous_raw = raw
 
         last_lines = parse_run_lines(raw, run_id)
@@ -421,12 +457,42 @@ def reboot_device_for_cold_load(adb: Adb):
     in ~2s but poll_for_result still timed out at 60s because logcat wasn't
     capturing yet. A throwaway "adb logcat -d" here forces that connection
     to establish before the real per-question polling begins.
+
+    Confirmed via poll_for_result's own debug logging (raw dump growing
+    ~30-50KB/sec of pure boot-time system noise - WiFi state machine,
+    package manager timing, etc.) that this noise can evict our target
+    run_id line from the default-sized ring buffer before any poll cycle
+    catches it - a genuine buffer overrun, not a timing or parsing bug.
+    Resizing the buffer up front gives our line far more room to survive.
+
+    Further confirmed via the static "--------- beginning of perf" marker
+    staying first in every dump while total length kept growing: "adb
+    logcat -d" combines multiple separate on-device buffers (main, system,
+    perf, crash, kernel, ...). A subsequent "-b all" attempt confirmed the
+    opposite problem - it pulled in ~1MB+ of kernel/perf/radio/events
+    noise (raw kernel boot messages included) that's irrelevant to our
+    tags, and still never found run_id. Android app Log.d() calls (i.e.
+    every one of our custom tags) land specifically in the "main" buffer,
+    so both the resize and poll_for_result's dump now target "-b main"
+    only - the smallest scope that can actually contain what we want.
     """
-    print("[COLD] Rebooting device for genuine cold-load measurement (this takes ~30-90s)...")
+    print("[COLD] Rebooting device for genuine cold-load measurement (this takes ~2 minutes)...")
     adb.run(["reboot"], timeout=30)
     adb.run(["wait-for-device"], timeout=180)
     time.sleep(COLD_BOOT_SETTLE_SECONDS)
-    adb.run(["logcat", "-d"], timeout=20)
+
+    print("[COLD] Resizing on-device logcat main buffer (where our app's Log.d() tags land) to reduce post-reboot ring-buffer eviction risk...")
+    resize_result = adb.run(["shell", "logcat", "-G", "16M", "-b", "main"], timeout=20)
+    resize_output = (resize_result.stdout or "").strip() or (resize_result.stderr or "").strip() or "(no output)"
+    print(f"[COLD] logcat -G 16M -b main -> returncode={resize_result.returncode} output={resize_output!r}")
+    if resize_result.returncode != 0:
+        print(
+            "[COLD] WARNING: logcat -G 16M -b main returned a non-zero exit code - the buffer resize "
+            "may NOT have taken effect (this device/OS build might not support '-b main' on -G). "
+            "Proceeding anyway, but ring-buffer eviction is more likely for the rest of this run."
+        )
+
+    adb.run(["logcat", "-d", "-b", "main"], timeout=20)
 
 
 def reset_smolchat_for_clean_process(adb: Adb):
@@ -444,6 +510,57 @@ def run_one(adb: Adb, model_path: str, question: str, n: int, timeout: int) -> d
     run_id = f"run_{n}_{int(time.time() * 1000)}"
     clear_logcat(adb)
     fire_broadcast(adb, model_path, question, run_id)
+    status, lines = poll_for_result(adb, run_id, timeout)
+    return {"run_id": run_id, "status": status, "lines": lines}
+
+
+def wait_for_broadcast_receipt(adb: Adb, run_id: str, poll_seconds: int) -> bool:
+    """Poll logcat's main buffer briefly for BROADCAST_RECEIVER's own
+    'received run_id=...' line - proof the app's receiver actually picked
+    up the broadcast, well before full inference completion (which
+    poll_for_result checks for separately, on its own timeout)."""
+    deadline = time.time() + poll_seconds
+    while time.time() < deadline:
+        result = adb.run(["logcat", "-d", "-b", "main"], timeout=30)
+        lines = parse_run_lines(result.stdout or "", run_id)
+        if "BROADCAST_RECEIVER" in lines:
+            return True
+        time.sleep(1)
+    return False
+
+
+def run_first_question_after_reboot(adb: Adb, model_path: str, question: str, n: int, timeout: int) -> dict:
+    """Fire the first broadcast after a --reboot-before reboot, retrying
+    with the SAME run_id if BROADCAST_RECEIVER never confirms pickup
+    within a short window.
+
+    Only used for question 1 of a --reboot-before run - every other
+    question, and every question in a non-reboot run, goes through
+    run_one() directly and is unaffected by this retry behavior.
+    """
+    run_id = f"run_{n}_{int(time.time() * 1000)}"
+    received = False
+
+    for attempt in range(1, BROADCAST_RECEIPT_MAX_ATTEMPTS + 1):
+        clear_logcat(adb)
+        fire_broadcast(adb, model_path, question, run_id)
+        if wait_for_broadcast_receipt(adb, run_id, BROADCAST_RECEIPT_POLL_SECONDS):
+            print(f"[COLD] Broadcast received on attempt {attempt}/{BROADCAST_RECEIPT_MAX_ATTEMPTS}")
+            received = True
+            break
+        if attempt < BROADCAST_RECEIPT_MAX_ATTEMPTS:
+            print(
+                f"[COLD] Broadcast not received within {BROADCAST_RECEIPT_POLL_SECONDS}s "
+                f"(attempt {attempt}/{BROADCAST_RECEIPT_MAX_ATTEMPTS}) - retrying with the same run_id..."
+            )
+            time.sleep(BROADCAST_RECEIPT_RETRY_DELAY_SECONDS)
+
+    if not received:
+        print(
+            f"[COLD] ERROR: broadcast was never received after {BROADCAST_RECEIPT_MAX_ATTEMPTS} attempts. "
+            "Proceeding to poll for RUN_DONE anyway, but it will likely time out."
+        )
+
     status, lines = poll_for_result(adb, run_id, timeout)
     return {"run_id": run_id, "status": status, "lines": lines}
 
@@ -476,13 +593,16 @@ def build_metrics(lines: dict) -> dict:
 # Main per-question loop
 # ---------------------------------------------------------------------------
 
-def run_benchmark(adb: Adb, model_path: str, questions: list, timeout: int) -> tuple:
+def run_benchmark(adb: Adb, model_path: str, questions: list, timeout: int, reboot_before: bool = False) -> tuple:
     results = []
     context_resets = 0
     total = len(questions)
 
     for n, question in enumerate(questions, start=1):
-        outcome = run_one(adb, model_path, question, n, timeout)
+        if n == 1 and reboot_before:
+            outcome = run_first_question_after_reboot(adb, model_path, question, n, timeout)
+        else:
+            outcome = run_one(adb, model_path, question, n, timeout)
         status, lines, run_id = outcome["status"], outcome["lines"], outcome["run_id"]
         context_reset_for_this_q = False
 
@@ -674,7 +794,7 @@ def main():
     questions = load_questions(args.questions)
 
     start_time = datetime.now(timezone.utc).isoformat()
-    results, context_resets = run_benchmark(adb, model_path, questions, args.timeout)
+    results, context_resets = run_benchmark(adb, model_path, questions, args.timeout, reboot_before=args.reboot_before)
     end_time = datetime.now(timezone.utc).isoformat()
 
     completed = sum(1 for r in results if r["status"] == "success")

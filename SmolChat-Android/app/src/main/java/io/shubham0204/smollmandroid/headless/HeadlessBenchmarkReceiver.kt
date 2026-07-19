@@ -64,20 +64,55 @@ class HeadlessBenchmarkReceiver : BroadcastReceiver() {
         // FLAG_ACTIVITY_REORDER_TO_FRONT brings an already-running instance forward as-is
         // (preserving whatever chat the user is currently viewing) rather than recreating it;
         // FLAG_ACTIVITY_NEW_TASK is required to start an Activity from this non-Activity context.
+        //
+        // Wrapped: launching a UI Activity from a BroadcastReceiver can throw in restricted
+        // states (e.g. pre-first-unlock / Direct Boot "locked" state right after a reboot), and
+        // an uncaught exception here would prevent execution from ever reaching the service-start
+        // call below — logging RECEIVER_ERROR here rules this in/out as the actual failure point
+        // for the "receiver logs fire, but nothing happens afterward, only right after reboot"
+        // symptom, rather than assuming the service-start call itself is the culprit.
         val activityIntent = Intent(context, ChatActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
         }
-        context.startActivity(activityIntent)
+        try {
+            context.startActivity(activityIntent)
+        } catch (e: Exception) {
+            Log.e(
+                "RECEIVER_ERROR",
+                "run_id=$runId startActivity(ChatActivity) threw " +
+                "${e.javaClass.simpleName}: ${e.message}",
+                e
+            )
+        }
 
+        // Wrapped: startForegroundService()/startService() can throw (SecurityException,
+        // IllegalStateException, ForegroundServiceStartNotAllowedException on API 31+) if called
+        // from a background-restricted context — plausible right after boot, before first
+        // unlock. Logging both the throw case AND a "returned normally" confirmation lets us
+        // distinguish two different failure modes: the call itself throwing here (caught below)
+        // vs. the call returning normally but the system silently deferring/dropping the actual
+        // service start until after unlock (in which case this log line appears but
+        // BenchmarkService still never logs anything — pointing at OS-level deferral, not an
+        // uncaught exception).
         val serviceIntent = Intent(context, BenchmarkService::class.java).apply {
             putExtra("model_path", modelPath)
             putExtra("prompt", prompt)
             putExtra("run_id", runId)
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(serviceIntent)
-        } else {
-            context.startService(serviceIntent)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(serviceIntent)
+            } else {
+                context.startService(serviceIntent)
+            }
+            Log.d("BROADCAST_RECEIVER", "run_id=$runId service start call returned normally")
+        } catch (e: Exception) {
+            Log.e(
+                "RECEIVER_ERROR",
+                "run_id=$runId BenchmarkService start call threw " +
+                "${e.javaClass.simpleName}: ${e.message}",
+                e
+            )
         }
     }
 }
