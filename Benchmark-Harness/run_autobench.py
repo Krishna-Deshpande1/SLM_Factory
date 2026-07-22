@@ -421,12 +421,12 @@ def poll_for_result(adb: Adb, run_id: str, timeout: int) -> tuple:
         elapsed = time.time() - start_time
         same_as_previous = raw == previous_raw
         run_id_present = run_id in raw
-        print(
-            f"[DEBUG-POLL] iter={iteration} elapsed={elapsed:.1f}s len={len(raw)} "
-            f"returncode={result.returncode} same_as_prev_dump={same_as_previous}"
-        )
-        print(f"[DEBUG-POLL] run_id={run_id!r} run_id_in_raw_text={run_id_present}")
-        print(f"[DEBUG-POLL] first200={raw[:200]!r}")
+        # print(
+        #     f"[DEBUG-POLL] iter={iteration} elapsed={elapsed:.1f}s len={len(raw)} "
+        #     f"returncode={result.returncode} same_as_prev_dump={same_as_previous}"
+        # )
+        # print(f"[DEBUG-POLL] run_id={run_id!r} run_id_in_raw_text={run_id_present}")
+        # print(f"[DEBUG-POLL] first200={raw[:200]!r}")
         previous_raw = raw
 
         last_lines = parse_run_lines(raw, run_id)
