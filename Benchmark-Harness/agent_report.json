@@ -1,26 +1,26 @@
 {
-  "model": "Qwen/Qwen3-0.6B",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
   "budget_rss_mb": 900.0,
   "budget_file_size_mb": null,
-  "timestamp": "2026-07-19T03:27:00.859801+00:00",
+  "timestamp": "2026-07-24T22:32:02.139730+00:00",
   "sweep_results": [
     {
       "quant": "Q4_K_M",
-      "file_size_mb": 461.8,
-      "peak_RSS_mb": 999.7,
-      "TTFT_ms": 610,
-      "TPS": 18.294,
-      "fits_file_size_budget": true,
+      "file_size_mb": 379.4,
+      "peak_RSS_mb": null,
+      "TTFT_ms": null,
+      "TPS": null,
+      "fits_file_size_budget": false,
       "fits_rss_budget": false,
       "fits_budget": false,
-      "status": "success",
-      "error": null
+      "status": "failed",
+      "error": "run_autobench.py exited with code 1"
     }
   ],
   "candidates_within_budget": [],
   "recommendation": {
-    "quant_level": "Q4_K_M",
-    "reasoning": "Deterministic fallback (no LLM reasoning): no tested quant level satisfied 900MB peak RSS. Recommending Q4_K_M as the closest option (peak RSS 100MB over the 900MB budget). Consider a smaller model or a higher budget if this is a hard constraint.",
+    "quant_level": null,
+    "reasoning": "Deterministic fallback (no LLM reasoning): no quant level completed benchmarking successfully; no recommendation possible.",
     "reasoning_source": "deterministic_fallback"
   }
 }

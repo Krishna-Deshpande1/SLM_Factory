@@ -41,9 +41,10 @@ QUANTIZE_BIN = LLAMA_CPP_DIR / "build" / "bin" / "llama-quantize"
 QUANT_LEVELS = ["Q4_K_M", "Q5_K_M", "Q8_0"]
 
 # Bits-per-parameter used to estimate loaded model RAM.
-# f16 = 16 bits = 2 bytes; quantized formats store fewer bits per weight.
+# f16/bf16 = 16 bits = 2 bytes; quantized formats store fewer bits per weight.
 QUANT_BPP = {
     "f16":    2.0,
+    "bf16":   2.0,
     "Q8_0":   1.0,
     "Q5_K_M": 0.6875,
     "Q4_K_M": 0.5625,
@@ -61,12 +62,50 @@ RAM_RECOMMENDATIONS = {
 # Helpers
 # ---------------------------------------------------------------------------
 
-def run(cmd: list[str], cwd: Path | None = None, capture: bool = False) -> subprocess.CompletedProcess:
+def ensure_active_venv() -> None:
+    """Re-exec under $VIRTUAL_ENV's own interpreter if this process isn't already using it.
+
+    Activating a venv only redirects bare `python`/`python3` lookups via PATH.
+    If this script was launched with an interpreter path that bypasses PATH
+    (shell history, an IDE run config, a cron job, etc.), sys.executable ends up
+    pointing at whatever actually ran this file — not the active venv — even
+    though $VIRTUAL_ENV is set and the shell prompt shows it active. Every
+    subprocess this script spawns (convert_hf_to_gguf.py) inherits sys.executable,
+    so that mismatch is what makes convert_hf_to_gguf.py run under a Python whose
+    numpy/torch conflict with the venv's, producing "OMP: Error #15".
+    """
+    venv = os.environ.get("VIRTUAL_ENV")
+    if not venv:
+        return
+
+    if Path(sys.prefix).resolve() == Path(venv).resolve():
+        return  # already running under the active venv
+
+    for candidate in ("python3", "python"):
+        venv_python = Path(venv) / "bin" / candidate
+        if venv_python.exists():
+            print(
+                f"[INFO] $VIRTUAL_ENV is {venv} but this process is running under "
+                f"{sys.executable}; re-executing under {venv_python} to match."
+            )
+            sys.stdout.flush()
+            os.execv(str(venv_python), [str(venv_python), *sys.argv])
+
+    print(
+        f"[WARN] $VIRTUAL_ENV is set to {venv} but no python/python3 found there; "
+        f"continuing under {sys.executable}.",
+        file=sys.stderr,
+    )
+
+
+def run(cmd: list[str], cwd: Path | None = None, capture: bool = False, env: dict | None = None) -> subprocess.CompletedProcess:
     """Execute a shell command, printing it first so the user can see what's running.
 
     capture=True suppresses stdout/stderr (used when we need to inspect output
     programmatically, e.g. parsing `adb devices`). Otherwise output streams
     live to the terminal so long-running steps like quantization show progress.
+    env, if given, replaces the subprocess's environment (callers pass a copy
+    of os.environ plus overrides — None here means "inherit unchanged").
     """
     print(f"\n[RUN] {' '.join(str(c) for c in cmd)}")
     return subprocess.run(
@@ -74,6 +113,7 @@ def run(cmd: list[str], cwd: Path | None = None, capture: bool = False) -> subpr
         cwd=cwd,
         capture_output=capture,
         text=True,
+        env=env,
     )
 
 
@@ -229,13 +269,14 @@ def detect_weight_format(model_dir: Path) -> str:
     require(False, f"No .safetensors or .bin weight files found in {model_dir}")
 
 
-def convert_to_f16(model_dir: Path, output_dir: Path, prefix: str) -> Path:
-    """Convert a HuggingFace checkpoint to a full-precision (float16) GGUF file.
+def convert_to_base(model_dir: Path, output_dir: Path, prefix: str, base_dtype: str = "f16") -> Path:
+    """Convert a HuggingFace checkpoint to a full-precision GGUF file.
 
     Calls llama.cpp's convert_hf_to_gguf.py, which reads the model architecture
     from config.json and writes all weights into a single GGUF container.
-    f16 is the lossless intermediate — quantized variants are produced from it
-    in the next step so we only need to run this conversion once.
+    `base_dtype` ("f16" or "bf16") is the lossless intermediate — quantized
+    variants are produced from it in the next step so we only need to run this
+    conversion once.
     Skips conversion if the output file already exists (idempotent reruns).
     """
     require(CONVERT_SCRIPT.exists(), f"convert_hf_to_gguf.py not found at {CONVERT_SCRIPT}")
@@ -243,24 +284,31 @@ def convert_to_f16(model_dir: Path, output_dir: Path, prefix: str) -> Path:
     fmt = detect_weight_format(model_dir)
     print(f"[CONVERT] Detected weight format: {fmt}")
 
-    f16_path = output_dir / f"{prefix}-f16.gguf"
-    if f16_path.exists():
-        print(f"[CONVERT] {f16_path.name} already exists, skipping conversion.")
-        return f16_path
+    base_path = output_dir / f"{prefix}-{base_dtype}.gguf"
+    if base_path.exists():
+        print(f"[CONVERT] {base_path.name} already exists, skipping conversion.")
+        return base_path
 
-    # The f16 GGUF will be roughly the same size as the source weights
+    # The base GGUF will be roughly the same size as the source weights
     check_disk_space(output_dir, file_size_mb(next(model_dir.glob(f"*.{fmt if fmt == 'safetensors' else 'bin'}"))) / 1024 * 2 + 2)
 
+    # convert_hf_to_gguf.py imports torch + numpy; if two copies of libomp end up
+    # loaded (e.g. via mismatched wheel builds) the process aborts with
+    # "OMP: Error #15: Initializing libomp.dylib, but found libomp.dylib already
+    # initialized." KMP_DUPLICATE_LIB_OK=TRUE is the same fix already proven in
+    # agent_quantize.py's find_convert_interpreter() call site for this exact error.
+    convert_env = {**os.environ, "KMP_DUPLICATE_LIB_OK": "TRUE"}
     result = run(
-        [sys.executable, str(CONVERT_SCRIPT), str(model_dir), "--outfile", str(f16_path), "--outtype", "f16"],
+        [sys.executable, str(CONVERT_SCRIPT), str(model_dir), "--outfile", str(base_path), "--outtype", base_dtype],
+        env=convert_env,
     )
     if result.returncode != 0:
         print(f"[ERROR] Conversion failed (exit {result.returncode})", file=sys.stderr)
         sys.exit(result.returncode)
 
-    require(f16_path.exists(), f"Expected {f16_path} after conversion but it was not created.")
-    print(f"[CONVERT] ✓ {f16_path.name}  ({file_size_mb(f16_path):.0f} MB)")
-    return f16_path
+    require(base_path.exists(), f"Expected {base_path} after conversion but it was not created.")
+    print(f"[CONVERT] ✓ {base_path.name}  ({file_size_mb(base_path):.0f} MB)")
+    return base_path
 
 
 # ---------------------------------------------------------------------------
@@ -342,6 +390,7 @@ def validate_and_report(
     quant_files: dict[str, Path],
     model_dir: Path,
     conversion_time: float,
+    base_dtype: str = "f16",
 ) -> dict:
     """Verify output files exist, print a size/RAM summary, and build the report dict.
 
@@ -366,8 +415,8 @@ def validate_and_report(
 
     if f16_path.exists():
         mb = file_size_mb(f16_path)
-        sizes["f16"] = round(mb, 1)
-        print(f"  f16 (base):  {mb:>8.0f} MB   RAM {estimate_ram_gb(params, 'f16')}")
+        sizes[base_dtype] = round(mb, 1)
+        print(f"  {base_dtype} (base):  {mb:>8.0f} MB   RAM {estimate_ram_gb(params, base_dtype)}")
 
     for level in QUANT_LEVELS:
         path = quant_files.get(level)
@@ -393,7 +442,7 @@ def validate_and_report(
     # don't need to reconstruct naming logic to find the files.
     output_files = {}
     if f16_path.exists():
-        output_files["f16"] = f16_path.name
+        output_files[base_dtype] = f16_path.name
     for level, path in quant_files.items():
         if path.exists():
             output_files[level] = path.name
@@ -528,11 +577,19 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument("--deploy", action="store_true", help="Push Q4_K_M to connected Android via ADB")
     p.add_argument("--skip-f16", action="store_true", help="Skip conversion if model-f16.gguf already exists")
+    p.add_argument(
+        "--base-dtype",
+        choices=["f16", "bf16"],
+        default="f16",
+        help="Unquantized base GGUF dtype to convert to before quantizing (default: f16)",
+    )
     return p.parse_args()
 
 
 def main() -> None:
     """Orchestrate the full download → convert → quantize → validate → deploy pipeline."""
+    ensure_active_venv()
+
     args = parse_args()
 
     output_dir = Path(args.output).expanduser().resolve()
@@ -552,7 +609,7 @@ def main() -> None:
     print(f"[INFO] Output filename prefix: {prefix}")
 
     # 2. Convert to full-precision GGUF (all quant levels are derived from this)
-    f16_path = convert_to_f16(model_dir, output_dir, prefix)
+    f16_path = convert_to_base(model_dir, output_dir, prefix, args.base_dtype)
 
     # 3. Compress to each requested quantization level
     quant_files = quantize_model(f16_path, output_dir, quant_levels, prefix)
@@ -568,6 +625,7 @@ def main() -> None:
         quant_files=quant_files,
         model_dir=model_dir,
         conversion_time=conversion_time,
+        base_dtype=args.base_dtype,
     )
 
     report_path = output_dir / "conversion_report.json"
