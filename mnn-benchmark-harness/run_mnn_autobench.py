@@ -31,6 +31,7 @@ BROADCAST_ACTION = "com.mnnllmchat.RUN_PROMPT"
 RECEIVER_COMPONENT = f"{PACKAGE}/.benchmark.headless.BenchmarkHeadlessReceiver"
 
 FALLBACK_ADB = str(Path.home() / "Library/Android/sdk/platform-tools/adb")
+MONSOON_SCRIPT = Path.home() / "SLM_Factory_Krishna_Personal/Power-Monitor/monsoon_single_reading.py"
 
 DEFAULT_QUESTIONS = [
     "What is the capital of France?",
@@ -210,17 +211,20 @@ def clear_logcat(adb: Adb):
     adb.run(["logcat", "-c"], timeout=15)
 
 
-def fire_broadcast(adb: Adb, model_path: str, question: str, run_id: str):
+def fire_broadcast(adb: Adb, model_path: str, question: str, run_id: str, max_tokens: int):
     # "adb shell <args...>" re-joins its args into ONE remote command string;
     # an unquoted space inside an extra's value gets split by the on-device
     # shell into extra argv tokens. Building the full command as a single,
     # already shell-quoted string (rather than passing question/model_path
     # as separate list items) sidesteps that regardless of how adb re-joins.
+    # max_tokens is sent via --ei (integer extra), matching its int type on
+    # the Kotlin side, unlike the string extras above.
     cmd = (
         f"am broadcast -a {BROADCAST_ACTION} -n {RECEIVER_COMPONENT} "
         f"--es model_path {shlex.quote(model_path)} "
         f"--es prompt {shlex.quote(question)} "
-        f"--es run_id {shlex.quote(run_id)}"
+        f"--es run_id {shlex.quote(run_id)} "
+        f"--ei max_tokens {int(max_tokens)}"
     )
     adb.run(["shell", cmd], timeout=20)
 
@@ -367,26 +371,60 @@ def build_metrics(tag_lines: dict) -> dict:
     }
 
 
-def run_one(adb: Adb, model_path: str, question: str, n: int, timeout: int) -> dict:
+# ---------------------------------------------------------------------------
+# Monsoon power measurement (ground truth, independent of BatteryManager)
+# ---------------------------------------------------------------------------
+
+def get_monsoon_power(duration_seconds=5) -> dict:
+    """Launch monsoon_single_reading.py (physical Monsoon HVPM power meter)
+    as a subprocess and return its parsed JSON reading - an independent
+    ground-truth cross-check against BatteryManager's on-device power_ma
+    estimate. Any failure (missing script, subprocess timeout, bad JSON,
+    etc.) is caught and reported back rather than crashing the benchmark run.
+    """
+    try:
+        result = subprocess.run(
+            [sys.executable, str(MONSOON_SCRIPT), "--duration-seconds", str(duration_seconds)],
+            capture_output=True, encoding="utf-8", errors="replace", timeout=30,
+        )
+        if result.returncode != 0:
+            return {
+                "power_ma_mean": None,
+                "error": f"monsoon_single_reading.py exited with code {result.returncode}: {(result.stderr or '').strip()[:500]}",
+            }
+        return json.loads(result.stdout)
+    except Exception as e:
+        return {"power_ma_mean": None, "error": f"{type(e).__name__}: {e}"}
+
+
+def run_one(adb: Adb, model_path: str, question: str, n: int, timeout: int, no_think: bool = False, max_tokens: int = 512) -> dict:
     run_id = f"run_{n}_{int(time.time() * 1000)}"
+    # /no_think is appended only to the text actually sent in the broadcast -
+    # the original question (without the suffix) is what gets logged/printed,
+    # so progress output and the results file stay readable either way.
+    prompt_text = f"{question} /no_think" if no_think else question
     clear_logcat(adb)
-    fire_broadcast(adb, model_path, question, run_id)
+    fire_broadcast(adb, model_path, prompt_text, run_id, max_tokens)
+    # Sampled right after firing the broadcast (rather than after polling
+    # completes) so the reading window overlaps with the start of inference
+    # instead of capturing post-inference idle power.
+    monsoon = get_monsoon_power(duration_seconds=5)
     status, tag_lines, run_lines = poll_for_result(adb, run_id, timeout)
-    return {"run_id": run_id, "status": status, "tag_lines": tag_lines, "run_lines": run_lines}
+    return {"run_id": run_id, "status": status, "tag_lines": tag_lines, "run_lines": run_lines, "monsoon": monsoon}
 
 
 # ---------------------------------------------------------------------------
 # Main per-question loop
 # ---------------------------------------------------------------------------
 
-def run_benchmark(adb: Adb, model_path: str, questions: list, timeout: int) -> list:
+def run_benchmark(adb: Adb, model_path: str, questions: list, timeout: int, no_think: bool = False, max_tokens: int = 512) -> list:
     results = []
     total = len(questions)
 
     for n, question in enumerate(questions, start=1):
-        outcome = run_one(adb, model_path, question, n, timeout)
-        status, tag_lines, run_lines, run_id = (
-            outcome["status"], outcome["tag_lines"], outcome["run_lines"], outcome["run_id"]
+        outcome = run_one(adb, model_path, question, n, timeout, no_think=no_think, max_tokens=max_tokens)
+        status, tag_lines, run_lines, run_id, monsoon = (
+            outcome["status"], outcome["tag_lines"], outcome["run_lines"], outcome["run_id"], outcome["monsoon"]
         )
 
         entry = {
@@ -401,6 +439,7 @@ def run_benchmark(adb: Adb, model_path: str, questions: list, timeout: int) -> l
 
         if status == "done":
             metrics = build_metrics(tag_lines)
+            metrics["power_ma_monsoon"] = monsoon.get("power_ma_mean")
             response = extract_response(run_lines, run_id)
             entry["status"] = "success"
             entry["metrics"] = metrics
@@ -409,12 +448,14 @@ def run_benchmark(adb: Adb, model_path: str, questions: list, timeout: int) -> l
             def fmt(v, unit="", nd=1):
                 return f"{v:.{nd}f}{unit}" if isinstance(v, (int, float)) else "N/A"
 
-            power_display = metrics["power_ma_raw"] if metrics["power_ma_raw"] is not None else "N/A"
+            battery_power_disp = metrics["power_ma_raw"] if metrics["power_ma_raw"] is not None else "N/A"
+            monsoon_power_disp = fmt(metrics["power_ma_monsoon"], "mA", 2)
             print(f"\n[{n}/{total}] \"{question}\"")
             print(
                 f"  ColdLoad={fmt(metrics['cold_load_ms'], 'ms', 0)} TTFT={fmt(metrics['ttft_ms'], 'ms')} "
                 f"PrefillTPS={fmt(metrics['prefill_tps'])} DecodeTPS={fmt(metrics['decode_tps'])} "
-                f"RSS={fmt(metrics['peak_rss_kb'], 'KB', 0)} Power={power_display}mA "
+                f"RSS={fmt(metrics['peak_rss_kb'], 'KB', 0)} "
+                f"Power={battery_power_disp}mA (BatteryMgr) / {monsoon_power_disp} (Monsoon) "
                 f"ThermalCPU={fmt(metrics['thermal_cpu_c'], '°C')} ThermalSkin={fmt(metrics['thermal_skin_c'], '°C')}"
             )
             preview = response if response and len(response) <= 160 else (response[:157] + "..." if response else "")
@@ -447,15 +488,19 @@ def stat_block(values):
     return {
         "mean": round(statistics.mean(values), 3),
         "std": round(statistics.pstdev(values), 3),
-        "min": min(values),
-        "max": max(values),
+        # round() on an int is a no-op, so this is safe for both int- and
+        # float-valued metrics - min/max previously went in unrounded, which
+        # let full-precision floats (e.g. Monsoon readings) overflow the
+        # table's fixed column widths and run into the next column.
+        "min": round(min(values), 3),
+        "max": round(max(values), 3),
         "n_completed": len(values),
     }
 
 
 SUMMARY_METRICS = [
     "cold_load_ms", "ttft_ms", "prefill_tps", "decode_tps",
-    "peak_rss_kb", "power_ma", "thermal_cpu_c", "thermal_skin_c",
+    "peak_rss_kb", "power_ma", "power_ma_monsoon", "thermal_cpu_c", "thermal_skin_c",
 ]
 
 
@@ -471,13 +516,29 @@ def compute_summary(results: list) -> dict:
         if r["status"] == "success" and r["metrics"] and r["metrics"].get("thermal_status")
     })
 
+    # Only questions where BOTH readings succeeded are comparable - a
+    # question where one source failed would otherwise silently drop out of
+    # one mean but not the other, making the two means not apples-to-apples.
+    power_diffs = [
+        abs(r["metrics"]["power_ma"] - r["metrics"]["power_ma_monsoon"])
+        for r in results
+        if r["status"] == "success" and r["metrics"]
+        and r["metrics"].get("power_ma") is not None
+        and r["metrics"].get("power_ma_monsoon") is not None
+    ]
+
     summary = {key: stat_block(vals(key)) for key in SUMMARY_METRICS}
     summary["thermal_states_observed"] = thermal_states
+    summary["power_comparison"] = {
+        "mean_abs_diff_ma": round(statistics.mean(power_diffs), 3) if power_diffs else None,
+        "n_completed": len(power_diffs),
+    }
     summary["note"] = (
-        "power_ma stats exclude questions where POWER_MA was reported as 'unavailable' or missing. "
-        "n_completed is reported per-metric because failed/timed-out questions - and, for power_ma "
-        "specifically, 'unavailable' readings - are silently excluded from that metric's mean otherwise, "
-        "which can bias results toward easier/luckier questions."
+        "power_ma stats exclude questions where POWER_MA was reported as 'unavailable' or missing; "
+        "power_ma_monsoon stats exclude questions where the Monsoon reading failed. n_completed is "
+        "reported per-metric because failed/timed-out questions - and, for these two power metrics "
+        "specifically, unavailable/failed readings - are silently excluded from that metric's mean "
+        "otherwise, which can bias results toward easier/luckier questions."
     )
     return summary
 
@@ -486,21 +547,37 @@ def print_summary_table(summary: dict, run_info: dict):
     print("\n" + "=" * 70)
     print("SUMMARY")
     print("=" * 70)
-    header = f"{'Metric':<16}{'Mean':>12}{'Std':>12}{'Min':>10}{'Max':>10}{'N':>6}"
+    no_think_disp = "ON (appending /no_think to all prompts)" if run_info.get("no_think_mode") else "OFF"
+    print(f"No-think mode: {no_think_disp}")
+    # Explicit fixed-precision formatting (not just str() via the field
+    # width) so a value's own decimal precision can never overflow its
+    # column and run into the next one - the underlying cause of the
+    # power_ma_monsoon row garbling together in the terminal.
+    def fmt_stat(v):
+        return f"{v:.3f}" if isinstance(v, (int, float)) else "N/A"
+
+    header = f"{'Metric':<18}{'Mean':>14}{'Std':>14}{'Min':>14}{'Max':>14}{'N':>6}"
     print(header)
     print("-" * len(header))
     for key in SUMMARY_METRICS:
         s = summary[key]
         row = (
-            f"{key:<16}"
-            f"{(s['mean'] if s['mean'] is not None else 'N/A'):>12}"
-            f"{(s['std'] if s['std'] is not None else 'N/A'):>12}"
-            f"{(s['min'] if s['min'] is not None else 'N/A'):>10}"
-            f"{(s['max'] if s['max'] is not None else 'N/A'):>10}"
+            f"{key:<18}"
+            f"{fmt_stat(s['mean']):>14}"
+            f"{fmt_stat(s['std']):>14}"
+            f"{fmt_stat(s['min']):>14}"
+            f"{fmt_stat(s['max']):>14}"
             f"{s['n_completed']:>6}"
         )
         print(row)
     print(f"\nThermal states observed: {', '.join(summary['thermal_states_observed']) or 'none'}")
+
+    pc = summary.get("power_comparison", {})
+    if pc.get("mean_abs_diff_ma") is not None:
+        print(f"Power comparison (BatteryMgr vs Monsoon): mean |diff| = {pc['mean_abs_diff_ma']:.2f}mA (N={pc['n_completed']})")
+    else:
+        print(f"Power comparison (BatteryMgr vs Monsoon): N/A (no question had both readings available)")
+
     print(summary["note"])
     print(f"\n[NOTE] {TIMEOUT_NOTE}")
     if run_info["battery_warning"]:
@@ -527,8 +604,17 @@ def parse_args():
                     help="Path to the model FOLDER already on the device (containing config.json/llm.mnn/llm.mnn.weight/etc.) - NOT a path to the .mnn file itself. This script does not push or convert models.")
     p.add_argument("--questions", default=None, help="Path to .txt file, one question per line")
     p.add_argument("--output", default="mnn_autobench_results.json")
-    p.add_argument("--timeout", type=int, default=60,
+    p.add_argument("--timeout", type=int, default=180,
                     help=f"Seconds to wait for RUN_DONE/RUN_ERROR per question. {TIMEOUT_NOTE}")
+    p.add_argument("--no-think", action="store_true", dest="no_think",
+                    help="Append ' /no_think' to every question's prompt text before sending it in the broadcast "
+                         "(Qwen3 models skip their <think> reasoning block entirely and answer directly - "
+                         "confirmed via manual testing to cut decode_len from ~145 to ~12 tokens for the same "
+                         "question). Only the text sent to the device is modified; progress output and the "
+                         "results file still show the original question. Default: OFF (unchanged behavior).")
+    p.add_argument("--max-tokens", type=int, default=512, dest="max_tokens",
+                    help="Max tokens to generate per question, passed through as the max_tokens extra in every "
+                         "broadcast (matches BenchmarkHeadlessReceiver's max_tokens extra on the Android side).")
     return p.parse_args()
 
 
@@ -538,6 +624,8 @@ def main():
     print("=" * 70)
     print("MNN Chat Automated Benchmark Pipeline")
     print(f"  Model path: {args.model_path}  Timeout: {args.timeout}s")
+    no_think_banner = "ON (appending /no_think to all prompts)" if args.no_think else "OFF"
+    print(f"  No-think mode: {no_think_banner}")
     print("=" * 70)
     print(f"[NOTE] {TIMEOUT_NOTE}")
 
@@ -555,7 +643,7 @@ def main():
     device_serial = adb.run(["get-serialno"], timeout=10).stdout.strip()
 
     start_time = datetime.now(timezone.utc).isoformat()
-    results = run_benchmark(adb, args.model_path, questions, args.timeout)
+    results = run_benchmark(adb, args.model_path, questions, args.timeout, no_think=args.no_think, max_tokens=args.max_tokens)
     end_time = datetime.now(timezone.utc).isoformat()
 
     completed = sum(1 for r in results if r["status"] == "success")
@@ -567,6 +655,8 @@ def main():
         "start_time": start_time,
         "end_time": end_time,
         "timeout_s": args.timeout,
+        "no_think_mode": args.no_think,
+        "max_tokens": args.max_tokens,
         "total": len(questions),
         "completed": completed,
         "failed": failed,
