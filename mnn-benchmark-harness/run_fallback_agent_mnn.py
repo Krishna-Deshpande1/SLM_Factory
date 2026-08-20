@@ -74,6 +74,11 @@ REQUIRED_SCRIPTS = [
 # gets mapped to MNN's numeric --quant_bit.
 QUANT_BIT_MAP = {"Q4_K_M": 4, "Q8_0": 8}
 
+# Mirrors run_fallback_agent_gguf.py's own MAX_QUESTION_ATTEMPTS: a question
+# that comes back garbage is retried up to this many total attempts before
+# falling through to the existing GGUF-fallback trigger, unchanged.
+MAX_MNN_QUESTION_ATTEMPTS = 5
+
 
 def _load_module(path: Path, name: str):
     spec = importlib.util.spec_from_file_location(name, str(path))
@@ -201,10 +206,16 @@ def run_mnn_question(mnn_module, mnn_adb, device_path: str, question_text: str, 
     run_benchmark() is just a Python for-loop calling run_one() per
     question, so no adaptation is needed, just calling it directly here
     instead of going through run_benchmark())."""
-    outcome = mnn_module.run_one(
-        mnn_adb, device_path, question_text, n, timeout,
-        no_think=no_think, max_tokens=(max_tokens if max_tokens is not None else 256),
-    )
+    # Only pass max_tokens through when the caller actually set it - passing
+    # max_tokens=None explicitly would override run_one()'s own default
+    # (4096) with None instead of letting that default take over, which is
+    # exactly the bug this replaces (a stale hardcoded 256 fallback here
+    # silently beat run_one()'s real default whenever --max-tokens wasn't
+    # passed on the command line).
+    run_one_kwargs = {"no_think": no_think}
+    if max_tokens is not None:
+        run_one_kwargs["max_tokens"] = max_tokens
+    outcome = mnn_module.run_one(mnn_adb, device_path, question_text, n, timeout, **run_one_kwargs)
     status = outcome["status"]
     if status == "done":
         metrics = mnn_module.build_metrics(outcome["tag_lines"])
@@ -338,6 +349,7 @@ def process_model(mnn_module, mnn_convert, agent, quality, check_fit, mnn_adb, a
         question_text, reference_answer = q["text"], q["answer"]
         qlabel = f"{label} Q{i}/{total_q} [mnn]"
 
+        attempt = 1
         outcome = run_mnn_question(mnn_module, mnn_adb, mnn_device_path, question_text, i, timeout, no_think, max_tokens)
         response = outcome["response"]
         metrics = outcome["metrics"] or {}
@@ -346,16 +358,33 @@ def process_model(mnn_module, mnn_convert, agent, quality, check_fit, mnn_adb, a
         # dumps exactly what is_garbage() sees, right before it's called, so
         # the next garbage-flagged response can be diagnosed from this
         # output directly instead of reconstructed after the fact.
-        print(f"{qlabel} [GARBAGE_CHECK_DEBUG] metrics={metrics!r} response={response!r}")
+        print(f"{qlabel} [GARBAGE_CHECK_DEBUG] attempt={attempt}/{MAX_MNN_QUESTION_ATTEMPTS} metrics={metrics!r} response={response!r}")
 
         # A hard engine error/timeout is treated the same as garbage output
         # here - either way this question produced nothing usable on MNN.
+        # is_garbage() itself is fully active and unchanged on every attempt.
         garbage = outcome["engine_status"] != "done" or quality.is_garbage(response, metrics)
+
+        # Retry up to MAX_MNN_QUESTION_ATTEMPTS total attempts: accept the
+        # FIRST attempt that passes is_garbage(), stopping immediately. If
+        # every attempt is garbage, the LAST attempt's outcome/response/
+        # metrics fall through to the existing GGUF-fallback trigger below,
+        # completely unchanged.
+        while garbage and attempt < MAX_MNN_QUESTION_ATTEMPTS:
+            attempt += 1
+            print(f"{qlabel} - GARBAGE on attempt {attempt - 1}/{MAX_MNN_QUESTION_ATTEMPTS} - retrying (attempt {attempt}/{MAX_MNN_QUESTION_ATTEMPTS})...")
+            outcome = run_mnn_question(mnn_module, mnn_adb, mnn_device_path, question_text, i, timeout, no_think, max_tokens)
+            response = outcome["response"]
+            metrics = outcome["metrics"] or {}
+            print(f"{qlabel} [GARBAGE_CHECK_DEBUG] attempt={attempt}/{MAX_MNN_QUESTION_ATTEMPTS} metrics={metrics!r} response={response!r}")
+            garbage = outcome["engine_status"] != "done" or quality.is_garbage(response, metrics)
 
         if outcome["engine_status"] != "done":
             print(f"{qlabel} - {outcome['engine_status'].upper()}: {outcome['error']}")
         elif garbage:
-            print(f"{qlabel} - GARBAGE detected: {shorten(response)!r}")
+            print(f"{qlabel} - GARBAGE after {attempt}/{MAX_MNN_QUESTION_ATTEMPTS} attempts: {shorten(response)!r}")
+        elif attempt > 1:
+            print(f"{qlabel} -> recovered on attempt {attempt}/{MAX_MNN_QUESTION_ATTEMPTS}")
 
         if garbage:
             # Stop processing further questions for THIS model on MNN

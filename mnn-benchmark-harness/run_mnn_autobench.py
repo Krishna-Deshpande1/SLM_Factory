@@ -397,7 +397,7 @@ def get_monsoon_power(duration_seconds=5) -> dict:
         return {"power_ma_mean": None, "error": f"{type(e).__name__}: {e}"}
 
 
-def run_one(adb: Adb, model_path: str, question: str, n: int, timeout: int, no_think: bool = False, max_tokens: int = 512) -> dict:
+def run_one(adb: Adb, model_path: str, question: str, n: int, timeout: int, no_think: bool = False, max_tokens: int = 4096) -> dict:
     run_id = f"run_{n}_{int(time.time() * 1000)}"
     # /no_think is appended only to the text actually sent in the broadcast -
     # the original question (without the suffix) is what gets logged/printed,
@@ -417,7 +417,7 @@ def run_one(adb: Adb, model_path: str, question: str, n: int, timeout: int, no_t
 # Main per-question loop
 # ---------------------------------------------------------------------------
 
-def run_benchmark(adb: Adb, model_path: str, questions: list, timeout: int, no_think: bool = False, max_tokens: int = 512) -> list:
+def run_benchmark(adb: Adb, model_path: str, questions: list, timeout: int, no_think: bool = False, max_tokens: int = 4096) -> list:
     results = []
     total = len(questions)
 
@@ -612,7 +612,7 @@ def parse_args():
                          "confirmed via manual testing to cut decode_len from ~145 to ~12 tokens for the same "
                          "question). Only the text sent to the device is modified; progress output and the "
                          "results file still show the original question. Default: OFF (unchanged behavior).")
-    p.add_argument("--max-tokens", type=int, default=512, dest="max_tokens",
+    p.add_argument("--max-tokens", type=int, default=4096, dest="max_tokens",
                     help="Max tokens to generate per question, passed through as the max_tokens extra in every "
                          "broadcast (matches BenchmarkHeadlessReceiver's max_tokens extra on the Android side).")
     return p.parse_args()

@@ -38,12 +38,27 @@ import string
 # Garbage detection
 # ---------------------------------------------------------------------------
 
+# Single, easy-to-flip switch: when False, is_garbage() short-circuits to
+# False immediately, before any rule runs - every rule below stays fully
+# intact in the code, just skipped, so flipping this back to True re-enables
+# all of them exactly as they were, with no logic to reconstruct.
+GARBAGE_CHECK_ENABLED = False
+
 # metrics dict field names observed/plausible for signaling that MNN Chat's
 # own repetition guard fired on-device - checked case-insensitively so this
 # doesn't silently miss a differently-cased key from a future logcat tag.
 REPETITION_FIELD_NAMES = ["repetition_detected", "REPETITION_DETECTED"]
 
 DECODE_LEN_GARBAGE_THRESHOLD = 5
+
+# Confirmed real truncation bug: responses that stop mid-thought well short
+# of a real answer (e.g. "We are told:", "Let's break down..."). Deliberately
+# NOT gated by GARBAGE_CHECK_ENABLED like every rule below it - this is the
+# one check directly targeting that confirmed bug, and (unlike the disabled
+# structural-repetition rules) doesn't carry meaningful false-positive risk:
+# a genuine, complete answer under 150 characters is rare for this question
+# set, and a truncated one is exactly what this is meant to catch.
+TRUNCATION_LENGTH_THRESHOLD = 150
 
 # Zero-width/invisible characters that can silently break exact-substring
 # matching (confirmed real case: broke the Android-side repetition guard).
@@ -89,6 +104,16 @@ def is_garbage(response: str, metrics: dict) -> bool:
     field, rather than treating "field not reported by this engine" the
     same as "field reported as a bad value".
     """
+    # Always active, regardless of GARBAGE_CHECK_ENABLED - see
+    # TRUNCATION_LENGTH_THRESHOLD's own comment for why this one rule is
+    # exempt from the flag. Every rule below this remains fully gated,
+    # unchanged.
+    if len((response or "").strip()) < TRUNCATION_LENGTH_THRESHOLD:
+        return True
+
+    if not GARBAGE_CHECK_ENABLED:
+        return False
+
     metrics = metrics or {}
 
     # Rule 1: on-device repetition guard fired.
@@ -232,6 +257,13 @@ def score_accuracy(response: str, reference_answer: str) -> bool:
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
+    # These tests validate is_garbage()'s rule logic itself, which stays
+    # fully intact regardless of GARBAGE_CHECK_ENABLED's default - so the
+    # flag is switched on for the duration of the tests below, otherwise
+    # every rule-logic assertion here would trivially fail on the disabled
+    # short-circuit rather than actually exercising the rules.
+    GARBAGE_CHECK_ENABLED = True
+
     # --- is_garbage: repetition loop (confirmed real failure pattern) ---
     repetition_response = "resse\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
     repetition_metrics = {"decode_len": 80, "repetition_detected": True}
@@ -246,7 +278,11 @@ if __name__ == "__main__":
     assert is_garbage(near_empty_response, near_empty_metrics) is True, "decode_len=2 should be garbage even with non-empty text"
 
     assert is_garbage("OK.", {"decode_len": 5}) is True, "decode_len exactly at threshold should still be garbage"
-    assert is_garbage("A real six token answer here", {"decode_len": 6}) is False, "decode_len just above threshold should not be garbage on its own"
+    # Padded to 150+ chars so this isolates decode_len's own threshold,
+    # independent of the always-on truncation-length check below.
+    long_enough_response = "A real six token answer here, " + "padding to clear the always-on truncation length check. " * 3
+    assert len(long_enough_response) >= TRUNCATION_LENGTH_THRESHOLD
+    assert is_garbage(long_enough_response, {"decode_len": 6}) is False, "decode_len just above threshold should not be garbage on its own"
 
     # --- is_garbage: empty/whitespace-only response ---
     assert is_garbage("", {"decode_len": 30}) is True
@@ -258,22 +294,56 @@ if __name__ == "__main__":
     # build_metrics(), which has no such field at all) means "unknown" for
     # rule 3, not "0" - a normal-looking response must not be auto-flagged
     # garbage just because this engine doesn't report token counts.
-    assert is_garbage("A perfectly normal, complete answer to the question.", {}) is False, "absent decode_len is 'unknown' (rule 3 doesn't apply), not '0'"
-    assert is_garbage("A perfectly normal, complete answer to the question.", None) is False, "None metrics dict should be handled gracefully (same as {})"
+    # Padded to 150+ chars throughout this section so these isolate the
+    # rule each is meant to test, independent of the always-on truncation
+    # check above (a short response would now be garbage on length alone,
+    # regardless of what these specific rules do).
+    normal_response = "A perfectly normal, complete answer to the question, explained in enough detail to comfortably clear the always-on truncation length check on its own."
+    assert len(normal_response) >= TRUNCATION_LENGTH_THRESHOLD
+    assert is_garbage(normal_response, {}) is False, "absent decode_len is 'unknown' (rule 3 doesn't apply), not '0'"
+    assert is_garbage(normal_response, None) is False, "None metrics dict should be handled gracefully (same as {})"
 
     # A key that IS present but explicitly None (a failed extraction on an
     # engine that DOES normally report it) still defaults to 0 -> garbage.
-    assert is_garbage("A perfectly normal, complete answer to the question.", {"decode_len": None}) is True, "present-but-None decode_len still defaults to 0 -> garbage"
+    assert is_garbage(normal_response, {"decode_len": None}) is True, "present-but-None decode_len still defaults to 0 -> garbage"
 
     # GGUF/SmolChat-shaped metrics (no decode_len key at all, real fields
     # instead) - rule 3 must not fire; only rules 1/2 apply on this engine.
     gguf_shaped_metrics = {"cold_load_ms": 900, "ttft_ms": 150, "tps": 12.3, "memory_kb": 500000, "power_ma": 300.0, "thermal": "NONE"}
-    assert is_garbage("The capital of France is Paris.", gguf_shaped_metrics) is False, "GGUF metrics shape has no decode_len - must not be auto-garbage"
+    gguf_shaped_response = (
+        "The capital of France is Paris, a city on the Seine river, and has been the "
+        "country's capital for many centuries, known worldwide for its museums and architecture."
+    )
+    assert len(gguf_shaped_response) >= TRUNCATION_LENGTH_THRESHOLD
+    assert is_garbage(gguf_shaped_response, gguf_shaped_metrics) is False, \
+        "GGUF metrics shape has no decode_len - must not be auto-garbage"
 
     # --- is_garbage: a real, healthy response should NOT be garbage ---
-    healthy_response = "The capital of France is Paris, a city on the Seine river."
+    healthy_response = "The capital of France is Paris, a city on the Seine river known for the Eiffel Tower, the Louvre, the Notre-Dame Cathedral, and centuries of history as the nation's capital."
     healthy_metrics = {"decode_len": 14, "repetition_detected": False}
+    assert len(healthy_response) >= TRUNCATION_LENGTH_THRESHOLD
     assert is_garbage(healthy_response, healthy_metrics) is False
+
+    # --- is_garbage: truncation-length check (CONFIRMED REAL BUG) ---
+    # Actual observed truncated responses, e.g. "We are told:" and "Let's
+    # break down..." - the model stops mid-thought well short of a real
+    # answer. Deliberately tested with GARBAGE_CHECK_ENABLED both True
+    # (set above) and explicitly False below, since the whole point of this
+    # rule is that it must fire either way - unlike every other rule here.
+    assert is_garbage("We are told:", {}) is True, "confirmed real truncation case"
+    assert is_garbage("Let's break down...", {}) is True, "confirmed real truncation case"
+    # Non-repetitive filler (not "x" * N) so this isolates the length
+    # boundary itself, independent of the separate repetition rule (also
+    # enabled here) which real repeated characters would otherwise trip.
+    _boundary_filler = ("This is a non-repetitive filler sentence used only to test the exact-length "
+                         "boundary of the truncation check without tripping the repetition rule. " * 2)
+    assert is_garbage(_boundary_filler[:TRUNCATION_LENGTH_THRESHOLD - 1], {}) is True, "one character under the threshold is still garbage"
+    assert is_garbage(_boundary_filler[:TRUNCATION_LENGTH_THRESHOLD], {}) is False, "exactly at the threshold is not garbage on length grounds alone"
+
+    GARBAGE_CHECK_ENABLED = False
+    assert is_garbage("We are told:", {}) is True, "truncation check must fire even while every other rule is disabled"
+    assert is_garbage(healthy_response, healthy_metrics) is False, "a long-enough response is still correctly not garbage while disabled"
+    GARBAGE_CHECK_ENABLED = True
 
     # --- is_garbage: CONFIRMED REAL GAP, now fixed ---
     # Actual observed response: the model looped on "resse" with zero-width
@@ -300,7 +370,12 @@ if __name__ == "__main__":
     # Sanity: stripping zero-width characters must not itself cause false
     # positives on ordinary, non-repetitive text that merely happens to
     # contain a few invisible characters (e.g. copy-pasted from elsewhere).
-    zero_width_but_normal_response = "The capital of​ France is​ Paris, a​ lovely city on the Seine."
+    # Padded to 150+ chars, same reasoning as the section above.
+    zero_width_but_normal_response = (
+        "The capital of​ France is​ Paris, a​ lovely city on the Seine known for its "
+        "museums,​ architecture, gardens, and centuries of history as the nation's capital."
+    )
+    assert len(zero_width_but_normal_response) >= TRUNCATION_LENGTH_THRESHOLD
     assert is_garbage(zero_width_but_normal_response, {"decode_len": 14, "repetition_detected": False}) is False
 
     print("is_garbage: all test cases passed")

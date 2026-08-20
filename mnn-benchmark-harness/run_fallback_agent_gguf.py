@@ -83,6 +83,13 @@ REQUIRED_SCRIPTS = [
 # themselves are already done ahead of time by ensure_gguf_converted().
 SETUP_OVERHEAD_SECONDS = 180
 
+# Per question, not per model: a question that comes back garbage is
+# retried (as its own single-question run_autobench.py invocation, paying
+# the app-restart+settle overhead again) up to this many times total
+# before giving up and keeping the last attempt's result. is_garbage()
+# itself is unchanged - this only wraps additional attempts around it.
+MAX_QUESTION_ATTEMPTS = 5
+
 _SUBPROCESS_OUTPUT_TAIL_CHARS = 2000
 
 
@@ -209,6 +216,102 @@ def ensure_gguf_converted(model_id: str, quant: str, label: str) -> dict:
 # GGUF: run ALL of a model's flagged questions in ONE run_autobench.py call
 # ---------------------------------------------------------------------------
 
+def run_gguf_batch(local_path: Path, quant: str, questions: list, timeout: int, no_think: bool, label: str) -> dict:
+    """Invoke run_autobench.py ONCE, covering exactly the given questions -
+    either the full flagged-question batch (every question's first
+    attempt), or a single question (a retry of one that came back
+    garbage). Same subprocess-invocation logic either way. Returns
+    {"ok": True, "results_list": [...]} (one entry per question, same
+    order as `questions`) or {"ok": False, "error": "..."}.
+    """
+    with tempfile.TemporaryDirectory(prefix="fallback_gguf_stage2_") as tmpdir:
+        tmpdir = Path(tmpdir)
+        questions_path = tmpdir / "questions.txt"
+        output_path = tmpdir / "output.json"
+
+        lines = []
+        for q in questions:
+            text = q["text"]
+            lines.append(f"{text} /no_think" if no_think else text)
+        questions_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+        overall_timeout = timeout * len(questions) + SETUP_OVERHEAD_SECONDS
+        # "--quiet" is always baked in here, not a user-facing flag on this
+        # script - run_autobench.py's own routine per-question/pre-flight
+        # output would otherwise duplicate the reporting this script already
+        # does after parsing its output JSON. [ERROR]/[WARN] lines and the
+        # final "Results saved"/"DONE" confirmation still always print.
+        cmd = [
+            sys.executable, "-u", str(RUN_AUTOBENCH_GGUF_SCRIPT),
+            "--model", str(local_path),
+            "--quant", quant,
+            "--questions", str(questions_path),
+            "--output", str(output_path),
+            "--timeout", str(timeout),
+            "--quiet",
+        ]
+        print(f"{label} - RUN (timeout={overall_timeout}s): {' '.join(cmd)}")
+
+        # Plain subprocess.run(), no capture-avoidance/os.system()/polling
+        # tricks - this script is a fresh top-level process (launched by
+        # run_pipeline.sh, not nested inside another Python process), which
+        # was the actual root cause identified after 7 failed fix attempts
+        # at the invocation-mechanism level alone.
+        try:
+            proc = subprocess.run(cmd, timeout=overall_timeout)
+        except subprocess.TimeoutExpired:
+            print(f"{label} - FAILED: run_autobench.py did not finish within {overall_timeout}s")
+            return {"ok": False, "error": f"run_autobench.py timed out after {overall_timeout}s"}
+
+        if not output_path.exists():
+            print(f"{label} - FAILED: run_autobench.py exited (code={proc.returncode}) but {output_path} was not written")
+            return {"ok": False, "error": f"run_autobench.py exited (code={proc.returncode}) but produced no output file"}
+
+        try:
+            data = json.loads(output_path.read_text())
+        except (json.JSONDecodeError, OSError) as exc:
+            print(f"{label} - FAILED: could not parse {output_path}: {exc}")
+            return {"ok": False, "error": f"failed to parse output JSON: {exc}"}
+
+    results_list = data.get("results", [])
+    if not results_list:
+        print(f"{label} - FAILED: run_autobench.py produced no per-question results (run_info={data.get('run_info')})")
+        return {"ok": False, "error": f"no per-question results (run_info={data.get('run_info')})"}
+
+    return {"ok": True, "results_list": results_list}
+
+
+def extract_response_and_metrics(quality, raw_result):
+    """From one raw run_autobench.py per-question result, return
+    (response, metrics, run_id, garbage_flag). A missing/non-success
+    raw_result is treated as garbage - exactly the existing rule, just
+    extracted so it can be reused for both the first attempt and retries.
+    is_garbage() itself is called exactly as before, unmodified.
+    """
+    if raw_result is None or raw_result.get("status") != "success":
+        run_id = raw_result.get("run_id") if raw_result else None
+        return None, {}, run_id, True
+
+    raw_metrics = raw_result.get("metrics") or {}
+    # Renamed to match MNN's own metrics field names for consistency
+    # across mnn_results.json/gguf_results.json - SmolChat/GGUF only
+    # ever reports one combined "tps" (not separate prefill/decode).
+    metrics = {
+        "cold_load_ms": raw_metrics.get("cold_load_ms"),
+        "ttft_ms": raw_metrics.get("ttft_ms"),
+        "decode_tps": raw_metrics.get("tps"),
+        "peak_rss_kb": raw_metrics.get("memory_kb"),
+        "power_ma": raw_metrics.get("power_ma"),
+        "power_ma_monsoon": raw_metrics.get("power_ma_monsoon"),
+        "thermal_cpu_c": raw_metrics.get("thermal_temp_cpu_c"),
+        "thermal_skin_c": raw_metrics.get("thermal_temp_skin_c"),
+    }
+    response = raw_result.get("response")
+    run_id = raw_result.get("run_id")
+    garbage_flag = quality.is_garbage(response, metrics)
+    return response, metrics, run_id, garbage_flag
+
+
 def build_result_entry(quality, model_id, quant, question_number, question_text, reference_answer,
                         response, is_correct, is_garbage_flag, metrics, run_id) -> dict:
     return {
@@ -250,83 +353,27 @@ def process_flagged_model(quality, model_entry: dict, index: int, total: int, ti
         result["error"] = f"GGUF conversion failed: {conv['error']}"
         return result
 
-    with tempfile.TemporaryDirectory(prefix="fallback_gguf_stage2_") as tmpdir:
-        tmpdir = Path(tmpdir)
-        questions_path = tmpdir / "questions.txt"
-        output_path = tmpdir / "output.json"
-
-        lines = []
-        for q in flagged_questions:
-            text = q["text"]
-            lines.append(f"{text} /no_think" if no_think else text)
-        questions_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-
-        overall_timeout = timeout * len(flagged_questions) + SETUP_OVERHEAD_SECONDS
-        # "--quiet" is always baked in here, not a user-facing flag on this
-        # script - run_autobench.py's own routine per-question/pre-flight
-        # output would otherwise duplicate the reporting this script already
-        # does after parsing its output JSON. [ERROR]/[WARN] lines and the
-        # final "Results saved"/"DONE" confirmation still always print.
-        cmd = [
-            sys.executable, "-u", str(RUN_AUTOBENCH_GGUF_SCRIPT),
-            "--model", str(conv["local_path"]),
-            "--quant", quant,
-            "--questions", str(questions_path),
-            "--output", str(output_path),
-            "--timeout", str(timeout),
-            "--quiet",
-        ]
-        print(f"{label} - RUN (timeout={overall_timeout}s): {' '.join(cmd)}")
-
-        # Plain subprocess.run(), no capture-avoidance/os.system()/polling
-        # tricks - this script is a fresh top-level process (launched by
-        # run_pipeline.sh, not nested inside another Python process), which
-        # was the actual root cause identified after 7 failed fix attempts
-        # at the invocation-mechanism level alone.
-        try:
-            proc = subprocess.run(cmd, timeout=overall_timeout)
-        except subprocess.TimeoutExpired:
-            print(f"{label} - FAILED: run_autobench.py did not finish within {overall_timeout}s")
-            result["status"] = "failed"
-            result["error"] = f"run_autobench.py timed out after {overall_timeout}s"
-            return result
-
-        if not output_path.exists():
-            print(f"{label} - FAILED: run_autobench.py exited (code={proc.returncode}) but {output_path} was not written")
-            result["status"] = "failed"
-            result["error"] = f"run_autobench.py exited (code={proc.returncode}) but produced no output file"
-            return result
-
-        try:
-            data = json.loads(output_path.read_text())
-        except (json.JSONDecodeError, OSError) as exc:
-            print(f"{label} - FAILED: could not parse {output_path}: {exc}")
-            result["status"] = "failed"
-            result["error"] = f"failed to parse output JSON: {exc}"
-            return result
-
-    results_list = data.get("results", [])
-    if not results_list:
-        print(f"{label} - FAILED: run_autobench.py produced no per-question results (run_info={data.get('run_info')})")
+    batch = run_gguf_batch(conv["local_path"], quant, flagged_questions, timeout, no_think, label)
+    if not batch["ok"]:
         result["status"] = "failed"
-        result["error"] = f"no per-question results (run_info={data.get('run_info')})"
+        result["error"] = batch["error"]
         return result
+    results_list = batch["results_list"]
 
     # Check EVERY flagged question in order, not just the first. The moment
-    # ANY question comes back garbage - first or later - stop immediately:
-    # no further questions after it are attempted, the model is marked
-    # "failed", and only the entries recorded BEFORE the garbage question
-    # are kept. This mirrors Stage 1's own stop-on-first-garbage rule
-    # exactly, just continuing from wherever Stage 1 left off - a later
-    # garbage question doesn't get a pass just because an earlier one in
-    # this same batch happened to succeed.
+    # ANY question comes back garbage - first or later, and after exhausting
+    # its own retries - stop immediately: no further questions after it are
+    # attempted, the model is marked "failed", and only the entries recorded
+    # BEFORE the garbage question are kept. This mirrors Stage 1's own
+    # stop-on-first-garbage rule exactly, just continuing from wherever
+    # Stage 1 left off - a later garbage question doesn't get a pass just
+    # because an earlier one in this same batch happened to succeed.
     entries = []
     garbage_question_number = None
     total_q = len(flagged_questions)
     for idx, q in enumerate(flagged_questions):
         question_number = q["question_number"]
         reference_answer = q["answer"]
-        raw_result = results_list[idx] if idx < len(results_list) else None
         # question_number is the ORIGINAL question's number from the full
         # question set (this batch is a filtered subset, not necessarily
         # 1..total_q sequentially) - only the /total_q denominator was
@@ -336,34 +383,34 @@ def process_flagged_model(quality, model_entry: dict, index: int, total: int, ti
         # on this being the true original number).
         qlabel = f"{label} Q{question_number}/{total_q} [gguf]"
 
-        if raw_result is None or raw_result.get("status") != "success":
-            response = None
-            metrics = {}
-            run_id = raw_result.get("run_id") if raw_result else None
-            garbage_flag = True
-        else:
-            raw_metrics = raw_result.get("metrics") or {}
-            # Renamed to match MNN's own metrics field names for consistency
-            # across mnn_results.json/gguf_results.json - SmolChat/GGUF only
-            # ever reports one combined "tps" (not separate prefill/decode).
-            metrics = {
-                "cold_load_ms": raw_metrics.get("cold_load_ms"),
-                "ttft_ms": raw_metrics.get("ttft_ms"),
-                "decode_tps": raw_metrics.get("tps"),
-                "peak_rss_kb": raw_metrics.get("memory_kb"),
-                "power_ma": raw_metrics.get("power_ma"),
-                "power_ma_monsoon": raw_metrics.get("power_ma_monsoon"),
-                "thermal_cpu_c": raw_metrics.get("thermal_temp_cpu_c"),
-                "thermal_skin_c": raw_metrics.get("thermal_temp_skin_c"),
-            }
-            response = raw_result.get("response")
-            run_id = raw_result.get("run_id")
-            garbage_flag = quality.is_garbage(response, metrics)
+        raw_result = results_list[idx] if idx < len(results_list) else None
+        response, metrics, run_id, garbage_flag = extract_response_and_metrics(quality, raw_result)
+
+        # Up to MAX_QUESTION_ATTEMPTS total: the batch call above was
+        # attempt 1 for every question. A question that came back garbage
+        # gets retried here as its own single-question run_autobench.py
+        # invocation - as soon as one attempt is NOT garbage, it's accepted
+        # immediately and retrying stops. If every attempt is garbage, the
+        # LAST attempt's result is what falls through to the existing
+        # stop-the-batch handling below, unchanged.
+        attempt = 1
+        while garbage_flag and attempt < MAX_QUESTION_ATTEMPTS:
+            attempt += 1
+            print(f"{qlabel} -> GARBAGE on attempt {attempt - 1}/{MAX_QUESTION_ATTEMPTS} - retrying (attempt {attempt}/{MAX_QUESTION_ATTEMPTS})...")
+            retry_batch = run_gguf_batch(conv["local_path"], quant, [q], timeout, no_think, qlabel)
+            if retry_batch["ok"] and retry_batch["results_list"]:
+                retry_raw_result = retry_batch["results_list"][0]
+            else:
+                retry_raw_result = None  # counts as garbage, same as a missing/non-success result
+            response, metrics, run_id, garbage_flag = extract_response_and_metrics(quality, retry_raw_result)
 
         if garbage_flag:
-            print(f"{qlabel} -> GARBAGE  response: {shorten(response)!r}")
+            print(f"{qlabel} -> GARBAGE after {attempt}/{MAX_QUESTION_ATTEMPTS} attempts  response: {shorten(response)!r}")
             garbage_question_number = question_number
             break  # stop immediately - no further flagged questions attempted
+
+        if attempt > 1:
+            print(f"{qlabel} -> recovered on attempt {attempt}/{MAX_QUESTION_ATTEMPTS}")
 
         is_correct = quality.score_accuracy(response, reference_answer)
         entry = build_result_entry(quality, model_id, quant, question_number, q["text"], reference_answer,

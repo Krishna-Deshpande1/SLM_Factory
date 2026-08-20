@@ -44,3 +44,4 @@ subset_questions.json
 smoke_test_questions.json
 fallback_test_1.7b.json
 eval_questions_first10.json
+qwen3-1.7b-official-mnn/
