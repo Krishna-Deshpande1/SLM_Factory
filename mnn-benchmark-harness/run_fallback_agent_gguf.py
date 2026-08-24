@@ -83,12 +83,17 @@ REQUIRED_SCRIPTS = [
 # themselves are already done ahead of time by ensure_gguf_converted().
 SETUP_OVERHEAD_SECONDS = 180
 
-# Per question, not per model: a question that comes back garbage is
-# retried (as its own single-question run_autobench.py invocation, paying
-# the app-restart+settle overhead again) up to this many times total
-# before giving up and keeping the last attempt's result. is_garbage()
-# itself is unchanged - this only wraps additional attempts around it.
-MAX_QUESTION_ATTEMPTS = 5
+# Per question, not per model: NOT a "retry until success" mechanism -
+# every question ALWAYS runs exactly TOTAL_ATTEMPTS_PER_QUESTION total
+# attempts (the initial batch call, plus WARMUP_ATTEMPTS - 1 more
+# single-question run_autobench.py invocations, each paying the
+# app-restart+settle overhead again). The first WARMUP_ATTEMPTS attempts
+# are unconditionally discarded regardless of whether they pass or fail
+# is_garbage() - only the FINAL attempt's result is ever recorded, even if
+# it's also garbage. is_garbage() itself is unchanged - this only wraps
+# additional attempts around it and decides which one gets kept.
+WARMUP_ATTEMPTS = 5
+TOTAL_ATTEMPTS_PER_QUESTION = WARMUP_ATTEMPTS + 1
 
 _SUBPROCESS_OUTPUT_TAIL_CHARS = 2000
 
@@ -219,8 +224,8 @@ def ensure_gguf_converted(model_id: str, quant: str, label: str) -> dict:
 def run_gguf_batch(local_path: Path, quant: str, questions: list, timeout: int, no_think: bool, label: str) -> dict:
     """Invoke run_autobench.py ONCE, covering exactly the given questions -
     either the full flagged-question batch (every question's first
-    attempt), or a single question (a retry of one that came back
-    garbage). Same subprocess-invocation logic either way. Returns
+    attempt), or a single question (one of its warmup or final attempts).
+    Same subprocess-invocation logic either way. Returns
     {"ok": True, "results_list": [...]} (one entry per question, same
     order as `questions`) or {"ok": False, "error": "..."}.
     """
@@ -386,17 +391,23 @@ def process_flagged_model(quality, model_entry: dict, index: int, total: int, ti
         raw_result = results_list[idx] if idx < len(results_list) else None
         response, metrics, run_id, garbage_flag = extract_response_and_metrics(quality, raw_result)
 
-        # Up to MAX_QUESTION_ATTEMPTS total: the batch call above was
-        # attempt 1 for every question. A question that came back garbage
-        # gets retried here as its own single-question run_autobench.py
-        # invocation - as soon as one attempt is NOT garbage, it's accepted
-        # immediately and retrying stops. If every attempt is garbage, the
-        # LAST attempt's result is what falls through to the existing
-        # stop-the-batch handling below, unchanged.
+        # ALWAYS run exactly TOTAL_ATTEMPTS_PER_QUESTION total attempts -
+        # NOT "retry until success". The batch call above was attempt 1 for
+        # every question (a warmup attempt like all the others). The first
+        # WARMUP_ATTEMPTS attempts are unconditionally discarded regardless
+        # of whether they pass or fail is_garbage() - is_garbage() itself is
+        # still called on every attempt, unchanged, but its result only
+        # matters for the FINAL attempt. Only that final attempt's
+        # response/metrics/run_id/garbage_flag survive this loop and get
+        # recorded below, even if it's also garbage.
         attempt = 1
-        while garbage_flag and attempt < MAX_QUESTION_ATTEMPTS:
+        print(f"{qlabel} -> warmup attempt {attempt}/{WARMUP_ATTEMPTS} (discarded)")
+        while attempt < TOTAL_ATTEMPTS_PER_QUESTION:
             attempt += 1
-            print(f"{qlabel} -> GARBAGE on attempt {attempt - 1}/{MAX_QUESTION_ATTEMPTS} - retrying (attempt {attempt}/{MAX_QUESTION_ATTEMPTS})...")
+            if attempt < TOTAL_ATTEMPTS_PER_QUESTION:
+                print(f"{qlabel} -> warmup attempt {attempt}/{WARMUP_ATTEMPTS} (discarded)")
+            else:
+                print(f"{qlabel} -> final attempt {attempt}/{TOTAL_ATTEMPTS_PER_QUESTION} (recording)")
             retry_batch = run_gguf_batch(conv["local_path"], quant, [q], timeout, no_think, qlabel)
             if retry_batch["ok"] and retry_batch["results_list"]:
                 retry_raw_result = retry_batch["results_list"][0]
@@ -404,26 +415,31 @@ def process_flagged_model(quality, model_entry: dict, index: int, total: int, ti
                 retry_raw_result = None  # counts as garbage, same as a missing/non-success result
             response, metrics, run_id, garbage_flag = extract_response_and_metrics(quality, retry_raw_result)
 
-        if garbage_flag:
-            print(f"{qlabel} -> GARBAGE after {attempt}/{MAX_QUESTION_ATTEMPTS} attempts  response: {shorten(response)!r}")
-            garbage_question_number = question_number
-            break  # stop immediately - no further flagged questions attempted
-
-        if attempt > 1:
-            print(f"{qlabel} -> recovered on attempt {attempt}/{MAX_QUESTION_ATTEMPTS}")
-
+        # Record the final attempt's result unconditionally - no early
+        # stopping, no conditional acceptance, even if it's garbage.
         is_correct = quality.score_accuracy(response, reference_answer)
         entry = build_result_entry(quality, model_id, quant, question_number, q["text"], reference_answer,
                                     response, is_correct, garbage_flag, metrics, run_id)
         entries.append(entry)
         print_question_result(qlabel, metrics, is_correct, response)
 
+        if garbage_flag:
+            print(f"{qlabel} -> final attempt is GARBAGE - recorded anyway (no retry-until-success), "
+                  f"but still stopping this model's batch here, unchanged.")
+            garbage_question_number = question_number
+            break  # stop immediately - no further flagged questions attempted
+
     if garbage_question_number is not None:
         first_was_the_failure = garbage_question_number == flagged_questions[0]["question_number"]
         origin = "the question that originally failed on MNN" if first_was_the_failure else "a later question in this batch"
+        # entries includes the just-recorded garbage question itself now
+        # (recorded unconditionally, per the fixed-attempts design above) -
+        # so the count below is split to avoid implying all of it succeeded.
+        successful_before_it = len(entries) - 1
         print(
-            f"{label} - GGUF ALSO garbage on Q{garbage_question_number} ({origin}) - marking model FAILED, "
-            f"stopping (keeping {len(entries)} genuinely-successful GGUF question(s) recorded before it, "
+            f"{label} - GGUF ALSO garbage on Q{garbage_question_number} ({origin}) after {TOTAL_ATTEMPTS_PER_QUESTION} "
+            f"total attempts - marking model FAILED, stopping (keeping {successful_before_it} genuinely-successful "
+            f"GGUF question(s) recorded before it, plus the garbage Q{garbage_question_number} entry itself, "
             f"plus whatever Stage 1's mnn_results.json already holds)."
         )
         result["status"] = "failed"

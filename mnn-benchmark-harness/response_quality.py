@@ -39,9 +39,10 @@ import string
 # ---------------------------------------------------------------------------
 
 # Single, easy-to-flip switch: when False, is_garbage() short-circuits to
-# False immediately, before any rule runs - every rule below stays fully
-# intact in the code, just skipped, so flipping this back to True re-enables
-# all of them exactly as they were, with no logic to reconstruct.
+# False immediately, before any rule runs - no exceptions, every rule
+# (including the length-based truncation check) stays fully intact in the
+# code, just skipped, so flipping this back to True re-enables all of them
+# exactly as they were, with no logic to reconstruct.
 GARBAGE_CHECK_ENABLED = False
 
 # metrics dict field names observed/plausible for signaling that MNN Chat's
@@ -52,12 +53,10 @@ REPETITION_FIELD_NAMES = ["repetition_detected", "REPETITION_DETECTED"]
 DECODE_LEN_GARBAGE_THRESHOLD = 5
 
 # Confirmed real truncation bug: responses that stop mid-thought well short
-# of a real answer (e.g. "We are told:", "Let's break down..."). Deliberately
-# NOT gated by GARBAGE_CHECK_ENABLED like every rule below it - this is the
-# one check directly targeting that confirmed bug, and (unlike the disabled
-# structural-repetition rules) doesn't carry meaningful false-positive risk:
-# a genuine, complete answer under 150 characters is rare for this question
-# set, and a truncated one is exactly what this is meant to catch.
+# of a real answer (e.g. "We are told:", "Let's break down..."). Gated by
+# GARBAGE_CHECK_ENABLED like every other rule here - a genuine, complete
+# answer under 150 characters is rare for this question set, and a truncated
+# one is exactly what this is meant to catch.
 TRUNCATION_LENGTH_THRESHOLD = 150
 
 # Zero-width/invisible characters that can silently break exact-substring
@@ -104,15 +103,13 @@ def is_garbage(response: str, metrics: dict) -> bool:
     field, rather than treating "field not reported by this engine" the
     same as "field reported as a bad value".
     """
-    # Always active, regardless of GARBAGE_CHECK_ENABLED - see
-    # TRUNCATION_LENGTH_THRESHOLD's own comment for why this one rule is
-    # exempt from the flag. Every rule below this remains fully gated,
-    # unchanged.
-    if len((response or "").strip()) < TRUNCATION_LENGTH_THRESHOLD:
-        return True
-
     if not GARBAGE_CHECK_ENABLED:
         return False
+
+    # No longer exempt from the flag above - see TRUNCATION_LENGTH_THRESHOLD's
+    # own comment. Gated the same as every rule below it.
+    if len((response or "").strip()) < TRUNCATION_LENGTH_THRESHOLD:
+        return True
 
     metrics = metrics or {}
 
@@ -327,9 +324,7 @@ if __name__ == "__main__":
     # --- is_garbage: truncation-length check (CONFIRMED REAL BUG) ---
     # Actual observed truncated responses, e.g. "We are told:" and "Let's
     # break down..." - the model stops mid-thought well short of a real
-    # answer. Deliberately tested with GARBAGE_CHECK_ENABLED both True
-    # (set above) and explicitly False below, since the whole point of this
-    # rule is that it must fire either way - unlike every other rule here.
+    # answer. Gated by GARBAGE_CHECK_ENABLED like every other rule here.
     assert is_garbage("We are told:", {}) is True, "confirmed real truncation case"
     assert is_garbage("Let's break down...", {}) is True, "confirmed real truncation case"
     # Non-repetitive filler (not "x" * N) so this isolates the length
@@ -341,7 +336,7 @@ if __name__ == "__main__":
     assert is_garbage(_boundary_filler[:TRUNCATION_LENGTH_THRESHOLD], {}) is False, "exactly at the threshold is not garbage on length grounds alone"
 
     GARBAGE_CHECK_ENABLED = False
-    assert is_garbage("We are told:", {}) is True, "truncation check must fire even while every other rule is disabled"
+    assert is_garbage("We are told:", {}) is False, "truncation check no longer fires while GARBAGE_CHECK_ENABLED is False - no rule is exempt from the flag anymore"
     assert is_garbage(healthy_response, healthy_metrics) is False, "a long-enough response is still correctly not garbage while disabled"
     GARBAGE_CHECK_ENABLED = True
 

@@ -45,3 +45,9 @@ smoke_test_questions.json
 fallback_test_1.7b.json
 eval_questions_first10.json
 qwen3-1.7b-official-mnn/
+generic_5_questions.json
+math_questions_10.txt
+needs_gguf_fallback_general_test.json
+needs_gguf_fallback_test.json
+subset_fp16_test.json
+verify_retry_10_math.json

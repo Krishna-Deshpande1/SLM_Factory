@@ -2,12 +2,14 @@
 """Pre-flight check: which model variants can realistically fit in the
 connected Android phone's current free RAM, before any download/conversion.
 
-Only Q4_K_M/Q8_0 variants are evaluated - bf16/null-quant variants aren't
-supported by MNN export at all (see run_model_pool.py's resolve_quant_bit()),
-so they're filtered out up front rather than being scored and then never
-usable. Each remaining variant's own peak_memory_mb field (a pool-provided,
-already-measured/trusted figure) is compared directly against the phone's
-current free RAM, with no scaling multiplier or safety margin applied.
+Q4_K_M, Q8_0, and full-precision (fp16/bf16, labeled "F16" here for
+consistency with the rest of the project's naming) variants are all
+evaluated - fp16 is a supported quantization option in this project now, not
+just Q4_K_M/Q8_0. Anything else is filtered out up front rather than being
+scored and then never usable. Each remaining variant's own peak_memory_mb
+field (a pool-provided, already-measured/trusted figure) is compared
+directly against the phone's current free RAM, with no scaling multiplier or
+safety margin applied.
 
 Usage:
     python3 check_model_fit.py --pool model_pool_unfiltered.json --output model_fit_report.json
@@ -63,7 +65,12 @@ def get_phone_free_ram_mb():
     return float(match.group(1)) / 1024.0
 
 
-SUPPORTED_QUANTS = {"Q4_K_M", "Q8_0"}
+# The pool represents full-precision variants with quant=null (JSON None) -
+# elsewhere in the pool that shows up as "bf16" (see selector/label fields),
+# but this script normalizes it to "F16" for its own output, matching the
+# project's naming convention.
+SUPPORTED_QUANTS = {"Q4_K_M", "Q8_0", None}
+QUANT_DISPLAY_LABELS = {None: "F16"}
 
 
 def load_pool(pool_path):
@@ -73,9 +80,8 @@ def load_pool(pool_path):
 
 
 def filter_supported_quants(variants):
-    """Keep only Q4_K_M/Q8_0 variants - bf16/null-quant variants are skipped
-    entirely (not evaluated, not scored) since MNN export doesn't support
-    them at all."""
+    """Keep only Q4_K_M/Q8_0/F16 (fp16/bf16, quant=null in the pool) variants -
+    anything else is skipped entirely (not evaluated, not scored)."""
     return [v for v in variants if v.get("quant") in SUPPORTED_QUANTS]
 
 
@@ -84,6 +90,7 @@ def evaluate_variant(variant, phone_free_ram_mb):
     fits = peak_memory_mb <= phone_free_ram_mb
 
     result = dict(variant)
+    result["quant"] = QUANT_DISPLAY_LABELS.get(variant.get("quant"), variant.get("quant"))
     result["fits"] = fits
     return result
 
@@ -156,7 +163,7 @@ def main():
 
     print(f"Phone free RAM: {phone_free_ram_mb:.0f} MB")
     if n_skipped:
-        print(f"Skipped {n_skipped} variant(s) with unsupported quant (not Q4_K_M/Q8_0)")
+        print(f"Skipped {n_skipped} variant(s) with unsupported quant (not Q4_K_M/Q8_0/F16)")
     print()
     print_summary_table(evaluated)
     print()
