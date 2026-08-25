@@ -65,6 +65,12 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 
 RESPONSE_QUALITY_SCRIPT = SCRIPT_DIR / "response_quality.py"
 
+# Only needed by --full-run mode, to reuse its load_fit_report()/
+# load_eval_questions() exactly rather than reimplementing that parsing here
+# - same cross-file-by-path reuse pattern already used throughout this
+# project (e.g. run_sanity_check.py).
+RUN_FALLBACK_AGENT_MNN_SCRIPT = SCRIPT_DIR / "run_fallback_agent_mnn.py"
+
 # The GGUF/SmolChat side lives in a sibling worktree, not this repo - same
 # cross-worktree reuse pattern already used elsewhere in this project.
 SMOLCHAT_WORKTREE = Path.home() / "SLM_Factory-SmolChat"
@@ -391,6 +397,20 @@ def process_flagged_model(quality, model_entry: dict, index: int, total: int, ti
         raw_result = results_list[idx] if idx < len(results_list) else None
         response, metrics, run_id, garbage_flag = extract_response_and_metrics(quality, raw_result)
 
+        # Prints the FULL metrics+response block for every attempt,
+        # immediately after that attempt completes - not just a one-line
+        # summary for the discarded ones - so warmup attempts are just as
+        # inspectable as the final, recorded one. Returns that attempt's own
+        # is_correct (computed fresh per attempt, not reused across
+        # attempts) so the caller can track the final attempt's value
+        # without re-printing or re-scoring it.
+        def print_attempt_block(attempt_num, response, metrics):
+            label_suffix = "discarded" if attempt_num < TOTAL_ATTEMPTS_PER_QUESTION else "final, recorded"
+            attempt_label = f"{qlabel} attempt {attempt_num}/{TOTAL_ATTEMPTS_PER_QUESTION} ({label_suffix})"
+            attempt_is_correct = quality.score_accuracy(response, reference_answer)
+            print_question_result(attempt_label, metrics, attempt_is_correct, response)
+            return attempt_is_correct
+
         # ALWAYS run exactly TOTAL_ATTEMPTS_PER_QUESTION total attempts -
         # NOT "retry until success". The batch call above was attempt 1 for
         # every question (a warmup attempt like all the others). The first
@@ -401,27 +421,23 @@ def process_flagged_model(quality, model_entry: dict, index: int, total: int, ti
         # response/metrics/run_id/garbage_flag survive this loop and get
         # recorded below, even if it's also garbage.
         attempt = 1
-        print(f"{qlabel} -> warmup attempt {attempt}/{WARMUP_ATTEMPTS} (discarded)")
+        is_correct = print_attempt_block(attempt, response, metrics)
         while attempt < TOTAL_ATTEMPTS_PER_QUESTION:
             attempt += 1
-            if attempt < TOTAL_ATTEMPTS_PER_QUESTION:
-                print(f"{qlabel} -> warmup attempt {attempt}/{WARMUP_ATTEMPTS} (discarded)")
-            else:
-                print(f"{qlabel} -> final attempt {attempt}/{TOTAL_ATTEMPTS_PER_QUESTION} (recording)")
             retry_batch = run_gguf_batch(conv["local_path"], quant, [q], timeout, no_think, qlabel)
             if retry_batch["ok"] and retry_batch["results_list"]:
                 retry_raw_result = retry_batch["results_list"][0]
             else:
                 retry_raw_result = None  # counts as garbage, same as a missing/non-success result
             response, metrics, run_id, garbage_flag = extract_response_and_metrics(quality, retry_raw_result)
+            is_correct = print_attempt_block(attempt, response, metrics)
 
         # Record the final attempt's result unconditionally - no early
-        # stopping, no conditional acceptance, even if it's garbage.
-        is_correct = quality.score_accuracy(response, reference_answer)
+        # stopping, no conditional acceptance, even if it's garbage. Already
+        # printed above (the "final, recorded" block), so not printed again.
         entry = build_result_entry(quality, model_id, quant, question_number, q["text"], reference_answer,
                                     response, is_correct, garbage_flag, metrics, run_id)
         entries.append(entry)
-        print_question_result(qlabel, metrics, is_correct, response)
 
         if garbage_flag:
             print(f"{qlabel} -> final attempt is GARBAGE - recorded anyway (no retry-until-success), "
@@ -444,6 +460,137 @@ def process_flagged_model(quality, model_entry: dict, index: int, total: int, ti
         )
         result["status"] = "failed"
         result["error"] = f"garbage on Q{garbage_question_number}: stopped GGUF fallback for this model"
+        result["gguf_results"] = entries
+        return result
+
+    result["status"] = "success"
+    result["gguf_results"] = entries
+    return result
+
+
+def process_full_model(quality, variant: dict, questions: list, index: int, total: int, timeout: int,
+                        no_think: bool, max_tokens) -> dict:
+    """--full-run mode: runs EVERY question in `questions` against this
+    model+quant, completely independent of anything Stage 1 (MNN) did - no
+    handoff, no reading of needs_gguf_fallback.json at all. This is a
+    deliberate near-duplicate of process_flagged_model() rather than a
+    shared refactor of it, so that mode is guaranteed untouched by this
+    addition.
+
+    The retry mechanism (WARMUP_ATTEMPTS discarded + 1 final attempt
+    recorded, TOTAL_ATTEMPTS_PER_QUESTION total) and all metrics collection
+    are identical to process_flagged_model() - only the source of the
+    question list changes (the full eval set, numbered 1..N here, instead
+    of a Stage-1-flagged subset carrying its own original numbering) and the
+    stop-early messaging no longer references MNN/Stage 1 at all, since
+    there's no handoff for it to refer to.
+
+    Returns {"model_id", "quant", "status" ("success"|"failed"), "error",
+    "gguf_results": [...]}."""
+    model_id = variant["model_id"]
+    quant = variant["quant"]
+    numbered_questions = [
+        {"question_number": i, "text": q["text"], "answer": q["answer"]}
+        for i, q in enumerate(questions, start=1)
+    ]
+    label = f"[{index}/{total}] {model_id} [{quant}]"
+
+    result = {"model_id": model_id, "quant": quant, "status": None, "error": None, "gguf_results": []}
+
+    if max_tokens is not None:
+        print(f"{label} [NOTE] --max-tokens has no effect here - SmolChat's broadcast protocol has no max_tokens extra.")
+
+    print(f"\n{'=' * 70}\n{label} ({len(numbered_questions)} question(s), full run)\n{'=' * 70}")
+
+    conv = ensure_gguf_converted(model_id, quant, label)
+    if not conv["ok"]:
+        print(f"{label} - FAILED (GGUF conversion): {conv['error']}")
+        result["status"] = "failed"
+        result["error"] = f"GGUF conversion failed: {conv['error']}"
+        return result
+
+    batch = run_gguf_batch(conv["local_path"], quant, numbered_questions, timeout, no_think, label)
+    if not batch["ok"]:
+        result["status"] = "failed"
+        result["error"] = batch["error"]
+        return result
+    results_list = batch["results_list"]
+
+    # Check every question in order. The moment ANY question comes back
+    # garbage - first or later, and after exhausting its own retries - stop
+    # immediately: no further questions after it are attempted, the model
+    # is marked "failed", and only the entries recorded BEFORE the garbage
+    # question are kept. Identical mechanics to process_flagged_model()'s
+    # own stop-on-first-garbage rule, just applied to the full question set
+    # rather than a flagged subset.
+    entries = []
+    garbage_question_number = None
+    total_q = len(numbered_questions)
+    for idx, q in enumerate(numbered_questions):
+        question_number = q["question_number"]
+        reference_answer = q["answer"]
+        qlabel = f"{label} Q{question_number}/{total_q} [gguf]"
+
+        raw_result = results_list[idx] if idx < len(results_list) else None
+        response, metrics, run_id, garbage_flag = extract_response_and_metrics(quality, raw_result)
+
+        # Prints the FULL metrics+response block for every attempt,
+        # immediately after that attempt completes - not just a one-line
+        # summary for the discarded ones - so warmup attempts are just as
+        # inspectable as the final, recorded one. Returns that attempt's own
+        # is_correct (computed fresh per attempt, not reused across
+        # attempts) so the caller can track the final attempt's value
+        # without re-printing or re-scoring it.
+        def print_attempt_block(attempt_num, response, metrics):
+            label_suffix = "discarded" if attempt_num < TOTAL_ATTEMPTS_PER_QUESTION else "final, recorded"
+            attempt_label = f"{qlabel} attempt {attempt_num}/{TOTAL_ATTEMPTS_PER_QUESTION} ({label_suffix})"
+            attempt_is_correct = quality.score_accuracy(response, reference_answer)
+            print_question_result(attempt_label, metrics, attempt_is_correct, response)
+            return attempt_is_correct
+
+        # ALWAYS run exactly TOTAL_ATTEMPTS_PER_QUESTION total attempts -
+        # NOT "retry until success". The batch call above was attempt 1 for
+        # every question (a warmup attempt like all the others). The first
+        # WARMUP_ATTEMPTS attempts are unconditionally discarded regardless
+        # of whether they pass or fail is_garbage() - is_garbage() itself is
+        # still called on every attempt, unchanged, but its result only
+        # matters for the FINAL attempt. Only that final attempt's
+        # response/metrics/run_id/garbage_flag survive this loop and get
+        # recorded below, even if it's also garbage.
+        attempt = 1
+        is_correct = print_attempt_block(attempt, response, metrics)
+        while attempt < TOTAL_ATTEMPTS_PER_QUESTION:
+            attempt += 1
+            retry_batch = run_gguf_batch(conv["local_path"], quant, [q], timeout, no_think, qlabel)
+            if retry_batch["ok"] and retry_batch["results_list"]:
+                retry_raw_result = retry_batch["results_list"][0]
+            else:
+                retry_raw_result = None  # counts as garbage, same as a missing/non-success result
+            response, metrics, run_id, garbage_flag = extract_response_and_metrics(quality, retry_raw_result)
+            is_correct = print_attempt_block(attempt, response, metrics)
+
+        # Record the final attempt's result unconditionally - no early
+        # stopping, no conditional acceptance, even if it's garbage. Already
+        # printed above (the "final, recorded" block), so not printed again.
+        entry = build_result_entry(quality, model_id, quant, question_number, q["text"], reference_answer,
+                                    response, is_correct, garbage_flag, metrics, run_id)
+        entries.append(entry)
+
+        if garbage_flag:
+            print(f"{qlabel} -> final attempt is GARBAGE - recorded anyway (no retry-until-success), "
+                  f"but still stopping this model's run here, unchanged.")
+            garbage_question_number = question_number
+            break  # stop immediately - no further questions attempted
+
+    if garbage_question_number is not None:
+        successful_before_it = len(entries) - 1
+        print(
+            f"{label} - GGUF garbage on Q{garbage_question_number} after {TOTAL_ATTEMPTS_PER_QUESTION} "
+            f"total attempts - marking model FAILED, stopping (keeping {successful_before_it} genuinely-successful "
+            f"GGUF question(s) recorded before it, plus the garbage Q{garbage_question_number} entry itself)."
+        )
+        result["status"] = "failed"
+        result["error"] = f"garbage on Q{garbage_question_number}: stopped GGUF full run for this model"
         result["gguf_results"] = entries
         return result
 
@@ -488,7 +635,18 @@ def parse_args():
         description="Stage 2 (GGUF-only) of the MNN-first, GGUF-fallback evaluation pipeline."
     )
     p.add_argument("--fallback-file", default="needs_gguf_fallback.json",
-                    help="Path to the queue written by Stage 1 (run_fallback_agent_mnn.py's --fallback-file).")
+                    help="Path to the queue written by Stage 1 (run_fallback_agent_mnn.py's --fallback-file). "
+                         "Ignored when --full-run is set.")
+    p.add_argument("--full-run", action="store_true", dest="full_run",
+                    help="Run the ENTIRE question set against every model+quant in --fit-report, "
+                         "completely independent of anything MNN (Stage 1) did - no fallback-file "
+                         "handoff at all. Requires --fit-report and --questions (same format/flags as "
+                         "run_fallback_agent_mnn.py). The fallback-file mode above stays available "
+                         "and unchanged when this flag is omitted.")
+    p.add_argument("--fit-report", default=None,
+                    help="Required with --full-run: same fit-report JSON ({'fits': [...]}) run_fallback_agent_mnn.py takes.")
+    p.add_argument("--questions", default=None,
+                    help="Required with --full-run: same eval-questions JSON run_fallback_agent_mnn.py takes.")
     p.add_argument("--timeout", type=int, default=180,
                     help="Seconds to wait per question's broadcast result on GGUF (default: 180). "
                          "The overall per-model subprocess timeout is this multiplied by that model's "
@@ -510,6 +668,98 @@ def parse_args():
     return args
 
 
+def run_full(quality, args) -> None:
+    """--full-run mode: runs the ENTIRE question set against every
+    model+quant in --fit-report, independent of anything MNN (Stage 1) did -
+    no needs_gguf_fallback.json handoff at all. Mirrors main()'s existing
+    fallback-file flow (load -> loop -> flatten results -> write outputs ->
+    print summary), just with a different input source (--fit-report/
+    --questions instead of --fallback-file) and process_full_model() instead
+    of process_flagged_model().
+    """
+    if not args.fit_report or not args.questions:
+        print("[ERROR] --full-run requires both --fit-report and --questions")
+        sys.exit(1)
+    if not RUN_FALLBACK_AGENT_MNN_SCRIPT.exists():
+        print(f"[ERROR] run_fallback_agent_mnn.py not found at {RUN_FALLBACK_AGENT_MNN_SCRIPT} "
+              "(needed by --full-run to reuse its --fit-report/--questions loaders)")
+        sys.exit(1)
+
+    # Reused by path, not reimplemented, so parsing can never silently drift
+    # out of sync with Stage 1's own --fit-report/--questions format.
+    mnn_fallback = _load_module(RUN_FALLBACK_AGENT_MNN_SCRIPT, "_run_fallback_agent_mnn_for_gguf_full_run")
+
+    try:
+        variants = mnn_fallback.load_fit_report(args.fit_report)
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"[ERROR] Failed to load fit report '{args.fit_report}': {exc}")
+        sys.exit(1)
+    if not variants:
+        print(f"[ERROR] No variants found in '{args.fit_report}' (expected a non-empty 'fits' list).")
+        sys.exit(1)
+
+    try:
+        questions = mnn_fallback.load_eval_questions(args.questions)
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        print(f"[ERROR] Failed to load questions '{args.questions}': {exc}")
+        sys.exit(1)
+    if not questions:
+        print(f"[ERROR] No questions found in '{args.questions}'.")
+        sys.exit(1)
+
+    total = len(variants)
+    print("=" * 70)
+    print("Stage 2: GGUF Full Run (independent of MNN)")
+    print(f"  Pool: {args.fit_report} ({total} models)  Questions: {args.questions} ({len(questions)})  "
+          f"Per-question timeout: {args.timeout}s")
+    print(f"  No-think: {'ON' if args.no_think else 'OFF'}")
+    print("=" * 70)
+
+    model_results = []
+    for i, variant in enumerate(variants, start=1):
+        r = process_full_model(quality, variant, questions, i, total, args.timeout, args.no_think, args.max_tokens)
+        model_results.append(r)
+
+    gguf_flat = []
+    for r in model_results:
+        gguf_flat.extend(r["gguf_results"])
+
+    with open(args.gguf_output, "w") as f:
+        json.dump(gguf_flat, f, indent=2, default=str)
+    print(f"\n[OUTPUT] GGUF results saved: {args.gguf_output} ({len(gguf_flat)} question results)")
+
+    succeeded = sum(1 for r in model_results if r["status"] == "success")
+    failed = sum(1 for r in model_results if r["status"] == "failed")
+
+    summary = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "fit_report": args.fit_report,
+        "questions_file": args.questions,
+        "total_models": total,
+        "succeeded": succeeded,
+        "failed": failed,
+        "models": [
+            {
+                "model_id": r["model_id"],
+                "quant": r["quant"],
+                "status": r["status"],
+                "error": r["error"],
+                "total_questions_recorded": len(r["gguf_results"]),
+            }
+            for r in model_results
+        ],
+    }
+    with open(args.summary_output, "w") as f:
+        json.dump(summary, f, indent=2, default=str)
+    print(f"[OUTPUT] Summary saved: {args.summary_output}")
+
+    print_summary_table(model_results)
+
+    print("\n" + "=" * 70)
+    print(f"STAGE 2 (FULL RUN) DONE - {succeeded} succeeded, {failed} failed (of {total} models)")
+    print("=" * 70)
+
+
 def main():
     args = parse_args()
 
@@ -519,6 +769,10 @@ def main():
             sys.exit(1)
 
     quality = _load_module(RESPONSE_QUALITY_SCRIPT, "_response_quality")
+
+    if args.full_run:
+        run_full(quality, args)
+        return
 
     try:
         flagged_models = load_fallback_queue(args.fallback_file)

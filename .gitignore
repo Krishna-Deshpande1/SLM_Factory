@@ -51,3 +51,5 @@ needs_gguf_fallback_general_test.json
 needs_gguf_fallback_test.json
 subset_fp16_test.json
 verify_retry_10_math.json
+gemma3-270m-official-mnn/
+subset_retry_confirm.json

@@ -355,22 +355,28 @@ def process_model(mnn_module, mnn_convert, agent, quality, check_fit, mnn_adb, a
         question_text, reference_answer = q["text"], q["answer"]
         qlabel = f"{label} Q{i}/{total_q} [mnn]"
 
+        # Prints the FULL metrics+response block for every attempt,
+        # immediately after that attempt completes - not just a one-line
+        # summary for the discarded ones - mirroring run_fallback_agent_gguf.py's
+        # identical change. Returns that attempt's own is_correct (computed
+        # fresh per attempt, not reused across attempts).
+        def print_attempt_block(attempt_num, response, metrics):
+            label_suffix = "discarded" if attempt_num < TOTAL_ATTEMPTS_PER_QUESTION else "final, recorded"
+            attempt_label = f"{qlabel} attempt {attempt_num}/{TOTAL_ATTEMPTS_PER_QUESTION} ({label_suffix})"
+            attempt_is_correct = quality.score_accuracy(response, reference_answer)
+            print_question_result(attempt_label, metrics, attempt_is_correct, response)
+            return attempt_is_correct
+
         attempt = 1
-        print(f"{qlabel} -> warmup attempt {attempt}/{WARMUP_ATTEMPTS} (discarded)")
         outcome = run_mnn_question(mnn_module, mnn_adb, mnn_device_path, question_text, i, timeout, no_think, max_tokens)
         response = outcome["response"]
         metrics = outcome["metrics"] or {}
-
-        # TEMPORARY DEBUG (grep "[GARBAGE_CHECK_DEBUG]" to find/remove):
-        # dumps exactly what is_garbage() sees, right before it's called, so
-        # the next garbage-flagged response can be diagnosed from this
-        # output directly instead of reconstructed after the fact.
-        print(f"{qlabel} [GARBAGE_CHECK_DEBUG] attempt={attempt}/{TOTAL_ATTEMPTS_PER_QUESTION} metrics={metrics!r} response={response!r}")
 
         # A hard engine error/timeout is treated the same as garbage output
         # here - either way this question produced nothing usable on MNN.
         # is_garbage() itself is fully active and unchanged on every attempt.
         garbage = outcome["engine_status"] != "done" or quality.is_garbage(response, metrics)
+        is_correct = print_attempt_block(attempt, response, metrics)
 
         # NOT "retry until success": every question ALWAYS runs exactly
         # TOTAL_ATTEMPTS_PER_QUESTION total attempts. The first
@@ -380,15 +386,11 @@ def process_model(mnn_module, mnn_convert, agent, quality, check_fit, mnn_adb, a
         # GGUF-fallback trigger below, even if it's also garbage.
         while attempt < TOTAL_ATTEMPTS_PER_QUESTION:
             attempt += 1
-            if attempt < TOTAL_ATTEMPTS_PER_QUESTION:
-                print(f"{qlabel} -> warmup attempt {attempt}/{WARMUP_ATTEMPTS} (discarded)")
-            else:
-                print(f"{qlabel} -> final attempt {attempt}/{TOTAL_ATTEMPTS_PER_QUESTION} (recording)")
             outcome = run_mnn_question(mnn_module, mnn_adb, mnn_device_path, question_text, i, timeout, no_think, max_tokens)
             response = outcome["response"]
             metrics = outcome["metrics"] or {}
-            print(f"{qlabel} [GARBAGE_CHECK_DEBUG] attempt={attempt}/{TOTAL_ATTEMPTS_PER_QUESTION} metrics={metrics!r} response={response!r}")
             garbage = outcome["engine_status"] != "done" or quality.is_garbage(response, metrics)
+            is_correct = print_attempt_block(attempt, response, metrics)
 
         if outcome["engine_status"] != "done":
             print(f"{qlabel} - {outcome['engine_status'].upper()}: {outcome['error']}")
@@ -399,11 +401,11 @@ def process_model(mnn_module, mnn_convert, agent, quality, check_fit, mnn_adb, a
 
         # Record the final attempt's result unconditionally - even when
         # garbage - mirroring run_fallback_agent_gguf.py's identical change.
-        is_correct = quality.score_accuracy(response, reference_answer)
+        # Already printed above (the "final, recorded" block), so not
+        # printed again here.
         entry = build_result_entry(quality, model_id, quant, "mnn", i, question_text, reference_answer,
                                     response, is_correct, metrics, outcome["run_id"])
         result["mnn_results"].append(entry)
-        print_question_result(qlabel, metrics, is_correct, response)
 
         if garbage:
             # Stop processing further questions for THIS model on MNN
