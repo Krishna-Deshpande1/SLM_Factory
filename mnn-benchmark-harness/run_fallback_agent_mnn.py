@@ -120,6 +120,21 @@ def _fmt(v, unit="", nd=1):
     return f"{v:.{nd}f}{unit}" if isinstance(v, (int, float)) else "N/A"
 
 
+def cooldown_between_models(minutes: float, index: int, total: int) -> None:
+    """Real time.sleep() pause between one model+quant's run and the next,
+    letting the phone's thermal state return to baseline before starting the
+    next benchmark - thermal state materially affects TTFT/TPS, so back-to-
+    back runs without a rest period can make later models look artificially
+    slower/hotter than they'd be measured cold. Skipped after the LAST
+    model (nothing left to cool down for) and entirely when minutes <= 0
+    (--cooldown-minutes 0, for quick tests where thermal accuracy doesn't matter).
+    """
+    if minutes <= 0 or index >= total:
+        return
+    print(f"\n[COOLDOWN] Waiting {minutes:g} minute(s) before next model...")
+    time.sleep(minutes * 60)
+
+
 def print_question_result(qlabel: str, metrics: dict, is_correct, response) -> None:
     """Standardized multi-line per-question result block:
 
@@ -489,6 +504,10 @@ def parse_args():
                     help="Append ' /no_think' to every question's prompt. Default: off.")
     p.add_argument("--max-tokens", type=int, default=None, dest="max_tokens",
                     help="Passed through to MNN's --ei max_tokens extra.")
+    p.add_argument("--cooldown-minutes", type=float, default=5.0, dest="cooldown_minutes",
+                    help="Real-time pause between one model+quant's run and the next, letting the phone's "
+                         "thermal state return to baseline (default: 5.0). Not applied after the last model. "
+                         "Use 0 to skip entirely (quick tests where thermal accuracy doesn't matter).")
     p.add_argument("--mnn-output", default="mnn_results.json",
                     help="Flat list of every question result recorded while on MNN, across all models.")
     p.add_argument("--fallback-file", default="needs_gguf_fallback.json",
@@ -559,6 +578,7 @@ def main():
         model_results.append(result)
         if needs_gguf_entry is not None:
             needs_gguf_entries.append(needs_gguf_entry)
+        cooldown_between_models(args.cooldown_minutes, i, total)
 
     mnn_flat = []
     for r in model_results:

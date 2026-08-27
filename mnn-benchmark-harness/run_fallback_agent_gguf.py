@@ -58,6 +58,7 @@ import json
 import subprocess
 import sys
 import tempfile
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -130,6 +131,20 @@ def shorten(text, n=150):
 
 def _fmt(v, unit="", nd=1):
     return f"{v:.{nd}f}{unit}" if isinstance(v, (int, float)) else "N/A"
+
+
+def cooldown_between_models(minutes: float, index: int, total: int) -> None:
+    """Real time.sleep() pause between one model+quant's run and the next,
+    letting the phone's thermal state return to baseline before starting the
+    next benchmark - mirrors run_fallback_agent_mnn.py's own
+    cooldown_between_models() exactly. Skipped after the LAST model (nothing
+    left to cool down for) and entirely when minutes <= 0
+    (--cooldown-minutes 0, for quick tests where thermal accuracy doesn't matter).
+    """
+    if minutes <= 0 or index >= total:
+        return
+    print(f"\n[COOLDOWN] Waiting {minutes:g} minute(s) before next model...")
+    time.sleep(minutes * 60)
 
 
 def print_question_result(qlabel: str, metrics: dict, is_correct, response) -> None:
@@ -656,6 +671,10 @@ def parse_args():
     p.add_argument("--max-tokens", type=int, default=None, dest="max_tokens",
                     help="Accepted for CLI compatibility with Stage 1, but has no effect - SmolChat's "
                          "broadcast protocol has no max_tokens extra.")
+    p.add_argument("--cooldown-minutes", type=float, default=5.0, dest="cooldown_minutes",
+                    help="Real-time pause between one model+quant's run and the next, letting the phone's "
+                         "thermal state return to baseline (default: 5.0). Not applied after the last model. "
+                         "Use 0 to skip entirely (quick tests where thermal accuracy doesn't matter).")
     p.add_argument("--gguf-output", default="gguf_results.json",
                     help="Flat list of every question result recorded while on GGUF, across all flagged models.")
     p.add_argument("--summary-output", default="agent_summary_gguf.json",
@@ -719,6 +738,7 @@ def run_full(quality, args) -> None:
     for i, variant in enumerate(variants, start=1):
         r = process_full_model(quality, variant, questions, i, total, args.timeout, args.no_think, args.max_tokens)
         model_results.append(r)
+        cooldown_between_models(args.cooldown_minutes, i, total)
 
     gguf_flat = []
     for r in model_results:
@@ -803,6 +823,7 @@ def main():
     for i, model_entry in enumerate(flagged_models, start=1):
         r = process_flagged_model(quality, model_entry, i, total, args.timeout, args.no_think, args.max_tokens)
         model_results.append(r)
+        cooldown_between_models(args.cooldown_minutes, i, total)
 
     gguf_flat = []
     for r in model_results:
