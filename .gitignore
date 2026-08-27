@@ -54,3 +54,5 @@ verify_retry_10_math.json
 gemma3-270m-official-mnn/
 subset_retry_confirm.json
 mnn-benchmark-harness/comparison_report.json
+mnn-benchmark-harness/comparison_report_s23.json
+subset_s23_sanity.json

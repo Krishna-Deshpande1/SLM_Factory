@@ -201,8 +201,20 @@ def _fmt(v, nd=1):
 
 
 def _cell(cat: dict) -> str:
-    mnn_s = _fmt(cat["mnn"], 0 if cat["unit"] in ("KB",) else 1)
-    gguf_s = _fmt(cat["gguf"], 0 if cat["unit"] in ("KB",) else 1)
+    # Power specifically gets 3 decimal places, not the default 1 - at 1
+    # decimal, genuinely different near-zero mA readings (e.g. 0.03 vs 0.52)
+    # both round to "0.0" and look tied in the table even though the
+    # underlying comparison (which uses the full-precision float, not this
+    # display string) correctly resolved a real winner. Memory/latency/
+    # accuracy formatting is untouched.
+    if cat["unit"] == "mA":
+        nd = 3
+    elif cat["unit"] == "KB":
+        nd = 0
+    else:
+        nd = 1
+    mnn_s = _fmt(cat["mnn"], nd)
+    gguf_s = _fmt(cat["gguf"], nd)
     winner_s = {"mnn": "MNN", "gguf": "GGUF", "tie": "tie", "N/A": "N/A"}[cat["winner"]]
     return f"{mnn_s}/{gguf_s}→{winner_s}"
 
