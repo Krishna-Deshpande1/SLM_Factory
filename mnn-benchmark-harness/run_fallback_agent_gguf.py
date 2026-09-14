@@ -649,7 +649,7 @@ def parse_args():
     p = argparse.ArgumentParser(
         description="Stage 2 (GGUF-only) of the MNN-first, GGUF-fallback evaluation pipeline."
     )
-    p.add_argument("--fallback-file", default="needs_gguf_fallback.json",
+    p.add_argument("--fallback-file", default=str(SCRIPT_DIR / "logs" / "needs_gguf_fallback.json"),
                     help="Path to the queue written by Stage 1 (run_fallback_agent_mnn.py's --fallback-file). "
                          "Ignored when --full-run is set.")
     p.add_argument("--full-run", action="store_true", dest="full_run",
@@ -675,9 +675,9 @@ def parse_args():
                     help="Real-time pause between one model+quant's run and the next, letting the phone's "
                          "thermal state return to baseline (default: 5.0). Not applied after the last model. "
                          "Use 0 to skip entirely (quick tests where thermal accuracy doesn't matter).")
-    p.add_argument("--gguf-output", default="gguf_results.json",
+    p.add_argument("--gguf-output", default=str(SCRIPT_DIR / "logs" / "gguf_results.json"),
                     help="Flat list of every question result recorded while on GGUF, across all flagged models.")
-    p.add_argument("--summary-output", default="agent_summary_gguf.json",
+    p.add_argument("--summary-output", default=str(SCRIPT_DIR / "logs" / "agent_summary_gguf.json"),
                     help="Per-model status summary for Stage 2.")
     # parse_known_args(), not parse_args(): run_pipeline.sh passes the same
     # argv to BOTH stage scripts, and Stage 1 has its own flags (e.g.
@@ -789,6 +789,9 @@ def main():
             sys.exit(1)
 
     quality = _load_module(RESPONSE_QUALITY_SCRIPT, "_response_quality")
+
+    Path(args.gguf_output).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.summary_output).parent.mkdir(parents=True, exist_ok=True)
 
     if args.full_run:
         run_full(quality, args)

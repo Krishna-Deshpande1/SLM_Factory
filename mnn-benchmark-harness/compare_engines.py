@@ -247,12 +247,12 @@ def print_report_table(comparisons: list) -> None:
 
 def parse_args():
     p = argparse.ArgumentParser(description="Per-model+quant MNN vs. GGUF comparison report.")
-    p.add_argument("--mnn-results", default=str(SCRIPT_DIR / "mnn_results.json"),
-                    help="Path to mnn_results.json (default: ./mnn_results.json).")
-    p.add_argument("--gguf-results", default=str(SCRIPT_DIR / "gguf_results.json"),
-                    help="Path to gguf_results.json (default: ./gguf_results.json).")
-    p.add_argument("--report-json", default=str(SCRIPT_DIR / "comparison_report.json"),
-                    help="Where to write the machine-readable JSON report (default: ./comparison_report.json).")
+    p.add_argument("--mnn-results", default=str(SCRIPT_DIR / "logs" / "mnn_results.json"),
+                    help="Path to mnn_results.json (default: ./logs/mnn_results.json).")
+    p.add_argument("--gguf-results", default=str(SCRIPT_DIR / "logs" / "gguf_results.json"),
+                    help="Path to gguf_results.json (default: ./logs/gguf_results.json).")
+    p.add_argument("--report-json", default=str(SCRIPT_DIR / "logs" / "comparison_report.json"),
+                    help="Where to write the machine-readable JSON report (default: ./logs/comparison_report.json).")
     return p.parse_args()
 
 
@@ -299,6 +299,7 @@ def main():
         "total_pairs_compared": len(comparisons),
         "comparisons": comparisons,
     }
+    Path(args.report_json).parent.mkdir(parents=True, exist_ok=True)
     with open(args.report_json, "w") as f:
         json.dump(report, f, indent=2, default=str)
     print(f"\n[OUTPUT] JSON report saved: {args.report_json}")

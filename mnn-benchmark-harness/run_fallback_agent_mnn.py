@@ -481,6 +481,7 @@ def print_summary_table(model_results: list):
 
 def save_needs_gguf_fallback(path: str, entries: list):
     report = {"timestamp": datetime.now(timezone.utc).isoformat(), "models": entries}
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
         json.dump(report, f, indent=2, default=str)
     print(f"[OUTPUT] GGUF fallback queue saved: {path} ({len(entries)} model(s) flagged)")
@@ -508,13 +509,13 @@ def parse_args():
                     help="Real-time pause between one model+quant's run and the next, letting the phone's "
                          "thermal state return to baseline (default: 5.0). Not applied after the last model. "
                          "Use 0 to skip entirely (quick tests where thermal accuracy doesn't matter).")
-    p.add_argument("--mnn-output", default="mnn_results.json",
+    p.add_argument("--mnn-output", default=str(SCRIPT_DIR / "logs" / "mnn_results.json"),
                     help="Flat list of every question result recorded while on MNN, across all models.")
-    p.add_argument("--fallback-file", default="needs_gguf_fallback.json",
+    p.add_argument("--fallback-file", default=str(SCRIPT_DIR / "logs" / "needs_gguf_fallback.json"),
                     help="Where to write models/questions flagged for Stage 2's GGUF fallback "
                          "(run_fallback_agent_gguf.py reads this same file, via the same flag name, "
                          "as its input).")
-    p.add_argument("--summary-output", default="agent_summary_mnn.json",
+    p.add_argument("--summary-output", default=str(SCRIPT_DIR / "logs" / "agent_summary_mnn.json"),
                     help="Per-model status/accuracy summary for Stage 1.")
     # parse_known_args(), not parse_args(): run_pipeline.sh passes the same
     # argv to BOTH stage scripts, and Stage 2 has its own flags (e.g.
@@ -584,6 +585,7 @@ def main():
     for r in model_results:
         mnn_flat.extend(r["mnn_results"])
 
+    Path(args.mnn_output).parent.mkdir(parents=True, exist_ok=True)
     with open(args.mnn_output, "w") as f:
         json.dump(mnn_flat, f, indent=2, default=str)
     print(f"\n[OUTPUT] MNN results saved: {args.mnn_output} ({len(mnn_flat)} question results)")
@@ -617,6 +619,7 @@ def main():
             for r in model_results
         ],
     }
+    Path(args.summary_output).parent.mkdir(parents=True, exist_ok=True)
     with open(args.summary_output, "w") as f:
         json.dump(summary, f, indent=2, default=str)
     print(f"[OUTPUT] Summary saved: {args.summary_output}")

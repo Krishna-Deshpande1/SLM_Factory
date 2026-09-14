@@ -579,6 +579,7 @@ def save_report(output_path: str, model: str, budget_rss_mb, budget_file_size_mb
             "reasoning_source": reasoning_source,
         },
     }
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w") as f:
         json.dump(report, f, indent=2, default=str)
     print(f"\n[OUTPUT] Report saved: {output_path}")
@@ -602,7 +603,7 @@ def parse_args():
                     help="Seconds passed through to run_mnn_autobench.py's --timeout per question. Default is 120 "
                          "(not 60) because real testing has shown MNN needs more than 60s for some questions, "
                          "especially reasoning-mode responses.")
-    p.add_argument("--output", default="mnn_agent_report.json")
+    p.add_argument("--output", default=str(SCRIPT_DIR / "logs" / "mnn_agent_report.json"))
     return p.parse_args()
 
 
@@ -638,7 +639,9 @@ def main():
     print(f"  Quant bits: {', '.join('Q' + b for b in args.quant_bits.split(','))}  Quant block: {args.quant_block}  Timeout: {args.timeout}s")
     print("=" * 60)
 
-    output_stem = Path(args.output).with_suffix("").name
+    output_path = Path(args.output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_stem = str(output_path.with_suffix(""))
     sweep_results = sweep(args.model, quant_bits, args.quant_block, questions_path, args.timeout,
                            args.budget_rss_mb, args.budget_file_size_mb, output_stem)
 

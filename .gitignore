@@ -56,3 +56,10 @@ subset_retry_confirm.json
 mnn-benchmark-harness/comparison_report.json
 mnn-benchmark-harness/comparison_report_s23.json
 subset_s23_sanity.json
+eos_test_6_questions.txt
+gemma3-270m-fresh-test/
+mnn_cpu_gpu_10q.txt
+ner_3_questions.txt
+ner_agent_test_5q.txt
+ner_test_3_questions.txt
+paper_repro_prompt_*.txt

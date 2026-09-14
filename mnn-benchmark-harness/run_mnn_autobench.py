@@ -60,6 +60,7 @@ NUMERIC_TAGS = [
     "COLD_LOAD_MS", "TTFT_MS", "PREFILL_TIME_US", "DECODE_TIME_US",
     "PROMPT_LEN", "DECODE_LEN", "PEAK_RSS_KB", "POWER_MA",
     "THERMAL_TEMP_CPU_C", "THERMAL_TEMP_SKIN_C",
+    "ENERGY_MAS_SAMPLED", "ENERGY_MJ_SAMPLED",
 ]
 STRING_TAGS = ["THERMAL_STATUS"]
 STATUS_TAGS = ["RUN_DONE", "RUN_ERROR"]
@@ -211,7 +212,8 @@ def clear_logcat(adb: Adb):
     adb.run(["logcat", "-c"], timeout=15)
 
 
-def fire_broadcast(adb: Adb, model_path: str, question: str, run_id: str, max_tokens: int):
+def fire_broadcast(adb: Adb, model_path: str, question: str, run_id: str, max_tokens: int,
+                    backend_type: str = None):
     # "adb shell <args...>" re-joins its args into ONE remote command string;
     # an unquoted space inside an extra's value gets split by the on-device
     # shell into extra argv tokens. Building the full command as a single,
@@ -226,6 +228,19 @@ def fire_broadcast(adb: Adb, model_path: str, question: str, run_id: str, max_to
         f"--es run_id {shlex.quote(run_id)} "
         f"--ei max_tokens {int(max_tokens)}"
     )
+    # Omitted entirely (not sent as an empty/default-valued extra) when
+    # backend_type is None, matching BenchmarkHeadlessReceiver.kt's own
+    # hasExtra()-gated top_k/top_p/min_p philosophy: intent.getStringExtra()
+    # returns null when the extra is absent, which HeadlessBenchmarkRunner
+    # logs as "BACKEND_TYPE_OVERRIDE=default" (i.e. leave the model's own
+    # shipped config.json backend_type completely untouched). Sending
+    # `--es backend_type cpu` explicitly on every call - even though cpu is
+    # already every model's shipped default - would still route through the
+    # override code path instead of the "no override" path, which is not
+    # the same as "existing calls without --backend-type behave exactly as
+    # today". Only add the extra when the caller actually asked for one.
+    if backend_type is not None:
+        cmd += f" --es backend_type {shlex.quote(backend_type)}"
     adb.run(["shell", cmd], timeout=20)
 
 
@@ -254,26 +269,34 @@ def parse_run(logcat_text: str, run_id: str) -> tuple:
 
 def poll_for_result(adb: Adb, run_id: str, timeout: int) -> tuple:
     """Poll logcat every 1s until RUN_DONE/RUN_ERROR for run_id or timeout.
+    Returns (status, tag_lines, run_lines, raw_log).
 
     Deliberately unfiltered ("adb logcat -d -b main" with no -s tag list) -
     filtering happens Python-side in parse_run(), which searches raw text
     for the run_id substring directly. "-b main" scopes to the buffer where
     Android app Log.* calls land, avoiding the kernel/radio/perf noise in
     "-b all".
+
+    raw_log is the exact, unfiltered buffer that produced this verdict -
+    callers that need a line with no run_id at all (e.g.
+    MNN_LLM_ACTUAL_BACKEND, a native-layer log with no run_id, logged once
+    per model load) can search it directly instead of re-polling logcat
+    separately, which would risk the ring buffer having rotated that line
+    out under heavy per-token logging by the time of a second, later read.
     """
     deadline = time.time() + timeout
-    last_tag_lines, last_run_lines = {}, []
+    last_tag_lines, last_run_lines, last_raw = {}, [], ""
     while time.time() < deadline:
         result = adb.run(["logcat", "-d", "-b", "main"], timeout=30)
         raw = result.stdout or ""
         tag_lines, run_lines = parse_run(raw, run_id)
-        last_tag_lines, last_run_lines = tag_lines, run_lines
+        last_tag_lines, last_run_lines, last_raw = tag_lines, run_lines, raw
         if "RUN_DONE" in tag_lines:
-            return "done", tag_lines, run_lines
+            return "done", tag_lines, run_lines, raw
         if "RUN_ERROR" in tag_lines:
-            return "error", tag_lines, run_lines
+            return "error", tag_lines, run_lines, raw
         time.sleep(1)
-    return "timeout", last_tag_lines, last_run_lines
+    return "timeout", last_tag_lines, last_run_lines, last_raw
 
 
 def extract_response(run_lines: list, run_id: str):
@@ -343,6 +366,12 @@ def build_metrics(tag_lines: dict) -> dict:
         thermal_status = m.group(1) if m else None
     thermal_cpu_c = extract_num(tag_lines, "THERMAL_TEMP_CPU_C", float)
     thermal_skin_c = extract_num(tag_lines, "THERMAL_TEMP_SKIN_C", float)
+    # "unavailable" (PowerSampler produced neither a valid sampled series nor
+    # a real per-sample voltage pairing) fails the float() cast the same way
+    # POWER_MA's own "unavailable" string does above - extract_num() already
+    # catches that and returns None, so no separate handling is needed here.
+    energy_mas_sampled = extract_num(tag_lines, "ENERGY_MAS_SAMPLED", float)
+    energy_mj_sampled = extract_num(tag_lines, "ENERGY_MJ_SAMPLED", float)
 
     # MNN reports prefill and decode performance separately (unlike engines
     # that report one combined TPS) - keep them as two distinct metrics.
@@ -365,6 +394,8 @@ def build_metrics(tag_lines: dict) -> dict:
         "peak_rss_kb": peak_rss_kb,
         "power_ma": power_ma,
         "power_ma_raw": power_ma_raw,
+        "energy_mas_sampled": energy_mas_sampled,
+        "energy_mj_sampled": energy_mj_sampled,
         "thermal_status": thermal_status,
         "thermal_cpu_c": thermal_cpu_c,
         "thermal_skin_c": thermal_skin_c,
@@ -397,32 +428,55 @@ def get_monsoon_power(duration_seconds=5) -> dict:
         return {"power_ma_mean": None, "error": f"{type(e).__name__}: {e}"}
 
 
-def run_one(adb: Adb, model_path: str, question: str, n: int, timeout: int, no_think: bool = False, max_tokens: int = 4096) -> dict:
+def run_one(adb: Adb, model_path: str, question: str, n: int, timeout: int, no_think: bool = False,
+            max_tokens: int = 4096, backend_type: str = None) -> dict:
     run_id = f"run_{n}_{int(time.time() * 1000)}"
     # /no_think is appended only to the text actually sent in the broadcast -
     # the original question (without the suffix) is what gets logged/printed,
     # so progress output and the results file stay readable either way.
     prompt_text = f"{question} /no_think" if no_think else question
     clear_logcat(adb)
-    fire_broadcast(adb, model_path, prompt_text, run_id, max_tokens)
+    fire_broadcast(adb, model_path, prompt_text, run_id, max_tokens, backend_type=backend_type)
     # Sampled right after firing the broadcast (rather than after polling
     # completes) so the reading window overlaps with the start of inference
     # instead of capturing post-inference idle power.
     monsoon = get_monsoon_power(duration_seconds=5)
-    status, tag_lines, run_lines = poll_for_result(adb, run_id, timeout)
-    return {"run_id": run_id, "status": status, "tag_lines": tag_lines, "run_lines": run_lines, "monsoon": monsoon}
+    status, tag_lines, run_lines, raw_log = poll_for_result(adb, run_id, timeout)
+    return {
+        "run_id": run_id, "status": status, "tag_lines": tag_lines, "run_lines": run_lines,
+        "monsoon": monsoon, "raw_log": raw_log,
+    }
 
 
 # ---------------------------------------------------------------------------
 # Main per-question loop
 # ---------------------------------------------------------------------------
 
-def run_benchmark(adb: Adb, model_path: str, questions: list, timeout: int, no_think: bool = False, max_tokens: int = 4096) -> list:
+def run_benchmark(adb: Adb, model_path: str, questions: list, timeout: int, no_think: bool = False,
+                   max_tokens: int = 4096, backend_type: str = None, warmup_runs: int = 0) -> list:
     results = []
     total = len(questions)
 
     for n, question in enumerate(questions, start=1):
-        outcome = run_one(adb, model_path, question, n, timeout, no_think=no_think, max_tokens=max_tokens)
+        # Independent of run_fallback_agent_mnn.py's own retry-for-truncation
+        # mechanism (which lives entirely in that file, keyed off
+        # response_quality.is_garbage() and scoped to that pipeline) - this
+        # is a plain "always run N, discard the first N-1, keep only the
+        # final one" warmup, with no quality check or garbage-detection logic
+        # attached, for reproducing figures that need a steady-state (not
+        # cold-cache) measurement. warmup_runs == 0 (the default) skips this
+        # block entirely, so the loop falls straight through to the single
+        # run_one() call below exactly as it always has.
+        if warmup_runs > 0:
+            for w in range(1, warmup_runs):
+                print(f"[{n}/{total}] warmup attempt {w}/{warmup_runs}")
+                run_one(adb, model_path, question, n, timeout, no_think=no_think, max_tokens=max_tokens,
+                        backend_type=backend_type)
+                time.sleep(2)
+            print(f"[{n}/{total}] warmup attempt {warmup_runs}/{warmup_runs} (final - recording)")
+
+        outcome = run_one(adb, model_path, question, n, timeout, no_think=no_think, max_tokens=max_tokens,
+                           backend_type=backend_type)
         status, tag_lines, run_lines, run_id, monsoon = (
             outcome["status"], outcome["tag_lines"], outcome["run_lines"], outcome["run_id"], outcome["monsoon"]
         )
@@ -586,6 +640,7 @@ def print_summary_table(summary: dict, run_info: dict):
 
 def save_results(output_path: str, run_info: dict, summary: dict, results: list):
     report = {"run_info": run_info, "results": results, "summary": summary}
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w") as f:
         json.dump(report, f, indent=2, default=str)
     print(f"\n[OUTPUT] Results saved: {output_path}")
@@ -603,7 +658,7 @@ def parse_args():
     p.add_argument("--model-path", required=True,
                     help="Path to the model FOLDER already on the device (containing config.json/llm.mnn/llm.mnn.weight/etc.) - NOT a path to the .mnn file itself. This script does not push or convert models.")
     p.add_argument("--questions", default=None, help="Path to .txt file, one question per line")
-    p.add_argument("--output", default="mnn_autobench_results.json")
+    p.add_argument("--output", default=str(Path(__file__).resolve().parent / "logs" / "mnn_autobench_results.json"))
     p.add_argument("--timeout", type=int, default=180,
                     help=f"Seconds to wait for RUN_DONE/RUN_ERROR per question. {TIMEOUT_NOTE}")
     p.add_argument("--no-think", action="store_true", dest="no_think",
@@ -615,6 +670,24 @@ def parse_args():
     p.add_argument("--max-tokens", type=int, default=4096, dest="max_tokens",
                     help="Max tokens to generate per question, passed through as the max_tokens extra in every "
                          "broadcast (matches BenchmarkHeadlessReceiver's max_tokens extra on the Android side).")
+    p.add_argument("--backend-type", choices=["cpu", "vulkan", "opencl"], default="cpu", dest="backend_type",
+                    help="Forces a specific MNN backend via the backend_type broadcast extra "
+                         "(BenchmarkHeadlessReceiver.EXTRA_BACKEND_TYPE, confirmed read by "
+                         "HeadlessBenchmarkService/HeadlessBenchmarkRunner as an in-memory, pre-load override). "
+                         "Default 'cpu' matches every shipped model's own config.json backend_type already, so "
+                         "omitting this flag is functionally identical to today: the extra is only actually "
+                         "included in the broadcast when this resolves to something other than 'cpu', since "
+                         "the Kotlin side treats a genuinely absent extra (not merely one valued 'cpu') as "
+                         "'leave the model's own shipped config completely untouched' - existing calls stay "
+                         "byte-for-byte identical to before this flag existed.")
+    p.add_argument("--warmup-runs", type=int, default=0, dest="warmup_runs",
+                    help="For each question, run it this many times total and discard the first N-1 results "
+                         "entirely (only a 'warmup attempt X/N' progress line each, no metrics/response logged), "
+                         "recording only the FINAL run's metrics/response - for steady-state measurements "
+                         "(e.g. reproducing a paper figure) rather than cold-cache-per-question ones. "
+                         "Independent of run_fallback_agent_mnn.py's own retry-for-truncation mechanism - no "
+                         "quality/garbage checking is attached here. Default: 0 (no warmup, unchanged behavior: "
+                         "exactly one run per question, same as before this flag existed).")
     return p.parse_args()
 
 
@@ -626,6 +699,14 @@ def main():
     print(f"  Model path: {args.model_path}  Timeout: {args.timeout}s")
     no_think_banner = "ON (appending /no_think to all prompts)" if args.no_think else "OFF"
     print(f"  No-think mode: {no_think_banner}")
+    # Only actually sent as a broadcast extra when it differs from "cpu" -
+    # see --backend-type's own help text for why "cpu" (the default) must
+    # NOT be forwarded as an explicit override to keep existing calls
+    # behaviorally identical to before this flag existed.
+    broadcast_backend_type = args.backend_type if args.backend_type != "cpu" else None
+    print(f"  Backend type: {args.backend_type}" + (" (default, no override sent)" if broadcast_backend_type is None else " (override)"))
+    if args.warmup_runs > 0:
+        print(f"  Warmup runs: {args.warmup_runs} (discarding first {args.warmup_runs - 1}, recording only the final run per question)")
     print("=" * 70)
     print(f"[NOTE] {TIMEOUT_NOTE}")
 
@@ -643,7 +724,9 @@ def main():
     device_serial = adb.run(["get-serialno"], timeout=10).stdout.strip()
 
     start_time = datetime.now(timezone.utc).isoformat()
-    results = run_benchmark(adb, args.model_path, questions, args.timeout, no_think=args.no_think, max_tokens=args.max_tokens)
+    results = run_benchmark(adb, args.model_path, questions, args.timeout, no_think=args.no_think,
+                             max_tokens=args.max_tokens, backend_type=broadcast_backend_type,
+                             warmup_runs=args.warmup_runs)
     end_time = datetime.now(timezone.utc).isoformat()
 
     completed = sum(1 for r in results if r["status"] == "success")
@@ -657,6 +740,8 @@ def main():
         "timeout_s": args.timeout,
         "no_think_mode": args.no_think,
         "max_tokens": args.max_tokens,
+        "backend_type": args.backend_type,
+        "warmup_runs": args.warmup_runs,
         "total": len(questions),
         "completed": completed,
         "failed": failed,
