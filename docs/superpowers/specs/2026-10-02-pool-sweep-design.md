@@ -22,13 +22,19 @@ memory, cold start, prefill tokens/s, decode tokens/s and energy.
 
 Exact Qwen3.5 repo ids are confirmed against Hugging Face during implementation.
 
-**Precisions per runtime** (unchanged from the existing converters; not byte-identical across runtimes):
+**Precisions per runtime** (not byte-identical across runtimes; the comparison is by bit width):
 
-| Label | llama.cpp (GGUF) | MNN |
+| Label | llama.cpp (GGUF) | MNN (`llmexport.py` flags) |
 |---|---|---|
-| F16 | `f16` | `q16` (fp16) |
-| Q8 | `Q8_0` | 8-bit, block 64 |
-| Q4 | `Q4_K_M` | 4-bit, block 64, lm_head 8-bit |
+| F16 | `f16` | `--quant_bit 16 --quant_block 64 --lm_quant_bit 16` |
+| Q8 | `Q8_0` | `--quant_bit 8 --quant_block 64 --lm_quant_bit 8` |
+| Q4 | `Q4_K_M` | `--quant_bit 4 --quant_block 32 --hqq --lm_quant_bit 8` |
+
+The MNN column is the recipe from `SLM_Factory/training/quantize_mnn.py` (`export_recipe()` and
+`MNN_LM_QUANT_BIT`), not this repo's current `convert_to_mnn.py` (which uses block 64 and no HQQ for Q4).
+SLM_Factory measured MNN's default 4-bit (min/max, block 64) losing up to 0.108 macro-F1 against `Q4_K_M` on
+the same weights, and HQQ + block 32 closing that to within 0.011 for ~10% more file size. 8-bit keeps MNN's
+default block. The lm_head is never quantized below the body (`max(8, bits)`).
 
 **Configurations:** 27 variants x 2 runtimes x 2 backends = 108. Every variant is attempted, including ones
 that will not fit in memory (F16 4B models are ~8 GB on an 8 GB phone); those are recorded as failures.
@@ -106,11 +112,30 @@ Options: `--serial`, `--pool`, `--models` (subset), `--backends cpu,opencl`, `--
 - **`run_mnn_autobench.py`:** same `--serial`, Windows `adb`, fail-fast and failure-result changes.
 - **`convert_to_gguf.py`:** `llama-quantize` located at `build/bin/Release/llama-quantize.exe` on Windows, or
   `--quantize-bin`. Built from the vendored `SmolChat-Android/llama.cpp` so GGUF versions match the app.
-- **`convert_to_mnn.py`:** `MNN_ROOT`, `llmexport.py` interpreter and `MNNConvert` paths configurable by flags /
-  environment instead of `~/SLM_Factory_Krishna_Personal/MNN`; Windows executable names.
+- **`convert_to_mnn.py`:** ported to SLM_Factory's export behaviour (the recipe is copied, not imported, so
+  this repo does not depend on SLM_Factory's training stack or on pymnn):
+  - the per-precision flags in the table above, with the same `SLM_MNN_QUANT_BLOCK` / `SLM_MNN_HQQ` /
+    `SLM_MNN_LM_QUANT_BIT` environment overrides;
+  - every path handed to `llmexport.py` made absolute (it runs from its own directory; relative paths
+    silently wrote the model into the MNN source tree in SLM_Factory run 40260162);
+  - a half-written output directory is deleted before re-exporting;
+  - completeness accepts `tokenizer.mtok` or `tokenizer.txt` (sentencepiece models such as Gemma write the
+    latter; the current check requires `.mtok` only);
+  - after export, `export_args.json` is read back and the export is refused if its `quant_bit`, `quant_block`,
+    `hqq` or `lm_quant_bit` differ from what was asked for;
+  - the validation sidecar records the recipe and the MNN commit/version, and a cache hit requires them to
+    match, so a Q4 built with the old recipe is never reused as the new one;
+  - toolchain located by `SLM_MNN_ROOT` / `SLM_MNN_LLMEXPORT` / `SLM_MNN_CONVERT_BIN` / `SLM_MNN_PYTHON` (same
+    names as SLM_Factory), defaulting to a sibling `MNN/` checkout; Windows executable names
+    (`MNNConvert.exe`, `Scripts\python.exe`).
+  - Not ported: SLM_Factory's pymnn load-validation and thread/GPU cross-checks. They need a pymnn build with
+    the LLM API on the laptop; here the phone run itself is the load test.
 - **`compare_engines.py`:** show recorded failures as rows (`status = oom/crash/timeout/load_error`) and add a
   `--pivot` report: one row per (model, precision, backend), llama.cpp and MNN values side by side for each
-  metric, written as text and CSV.
+  metric, written as text and CSV. Each row also reports how many reported answers are degenerate (no word
+  characters once markup is stripped, SLM_Factory's `looks_degenerate()`), because SLM_Factory found MNN can
+  decode garbage at some CPU thread counts with finite, plausible logits; speed numbers from a config whose
+  answers are garbage are flagged rather than trusted.
 
 ## Failure handling
 
@@ -137,11 +162,21 @@ file forces a retry.
 
 ## Laptop prerequisites (runner)
 
-Android Studio (SDK platform-tools, NDK 27.2.12479018, CMake 3.22.1), Python 3.10+ with a venv containing
-the conversion requirements (`torch`, `transformers`, `huggingface_hub`, `gguf`, `sentencepiece`, `perfetto`),
-a Hugging Face token with the Gemma licence accepted, Visual Studio Build Tools (C++) for `llama-quantize` and
-`MNNConvert`, a clone of public `alibaba/MNN` at a version compatible with the installed MNN Chat, the two
-SmolChat APKs, and ~40 GB free disk (largest single model's downloads plus both conversions).
+- Android Studio (SDK platform-tools, NDK 27.2.12479018, CMake 3.22.1) and the two SmolChat APKs.
+- Python 3.10+ venv for GGUF conversion and the harness (`torch`, `transformers`, `huggingface_hub`, `gguf`,
+  `sentencepiece`, `perfetto`), and a Hugging Face token with the Gemma licence accepted.
+- Visual Studio Build Tools (C++) to build `llama-quantize` (vendored llama.cpp) and `MNNConvert`.
+- MNN toolchain matching SLM_Factory: `alibaba/MNN` pinned to **3.6.1 @ `47ccf6c6bb5b`** (the commit SLM_Factory
+  recorded), `MNNConvert` built with `MNN_BUILD_CONVERTER=ON MNN_BUILD_LLM=ON MNN_LOW_MEMORY=ON
+  MNN_SUPPORT_TRANSFORMER_FUSE=ON`, and a separate `.venv_mnn` for `llmexport.py` (CPU `torch`, `transformers`,
+  `peft`, `onnx`, `onnxslim`, `onnxruntime`, `sentencepiece`, `numpy<3`, `tqdm`, `yaspin`, `Pillow`,
+  `requests`, `datasets`). SLM_Factory's `scripts/setup_mnn_env.sh` is Linux/SLURM-specific; a Windows
+  equivalent (`scripts/setup_mnn_env.ps1`) covers only these two stages (no pymnn, no CUDA).
+- ~40 GB free disk (the largest model's download plus both conversions).
+
+SLM_Factory exported all 9 pool models at all three precisions with this toolchain (backend matrix job
+40305686), so export of SmolLM2, Gemma 3, Qwen3 and Qwen3.5 is known to work. Whether the phone's installed
+MNN Chat loads MNN 3.6.1 exports is checked in the smoke test.
 
 ## Testing
 
@@ -159,6 +194,9 @@ more slowly and wait longer at the heat gate; expect well over a day for the ful
 so it can run across several sessions.
 
 ## Open items
+
+Qwen3 4B variant: SLM_Factory's pool uses `Qwen/Qwen3-4B-Instruct-2507` (non-thinking), not `Qwen/Qwen3-4B`
+(hybrid thinking); the user to choose.
 
 Waiting on the user's device outputs: Android SDK level (`KNOWN_AFFECTED_DEVICES` expects 36), MNN Chat
 version (determines the MNN conversion version), SmolChat APK install/signature check, and `run-as`
