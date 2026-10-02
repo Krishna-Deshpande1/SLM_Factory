@@ -17,10 +17,11 @@ memory, cold start, prefill tokens/s, decode tokens/s and energy.
 |---|---|
 | Gemma 3 | `google/gemma-3-270m-it` |
 | SmolLM2 | `HuggingFaceTB/SmolLM2-135M-Instruct`, `HuggingFaceTB/SmolLM2-360M-Instruct` |
-| Qwen3 | `Qwen/Qwen3-0.6B`, `Qwen/Qwen3-1.7B`, `Qwen/Qwen3-4B` |
+| Qwen3 | `Qwen/Qwen3-0.6B`, `Qwen/Qwen3-1.7B`, `Qwen/Qwen3-4B-Instruct-2507` |
 | Qwen3.5 | `Qwen/Qwen3.5-0.8B`, `Qwen/Qwen3.5-2B`, `Qwen/Qwen3.5-4B` |
 
-Exact Qwen3.5 repo ids are confirmed against Hugging Face during implementation.
+Identical to SLM_Factory's `config/android_pool.py`. All are post-trained chat models; Qwen3-0.6B/1.7B and
+Qwen3.5 are hybrid-thinking (thinking is turned off, see below), Qwen3-4B-Instruct-2507 is non-thinking.
 
 **Precisions per runtime** (not byte-identical across runtimes; the comparison is by bit width):
 
@@ -194,9 +195,6 @@ more slowly and wait longer at the heat gate; expect well over a day for the ful
 so it can run across several sessions.
 
 ## Open items
-
-Qwen3 4B variant: SLM_Factory's pool uses `Qwen/Qwen3-4B-Instruct-2507` (non-thinking), not `Qwen/Qwen3-4B`
-(hybrid thinking); the user to choose.
 
 Waiting on the user's device outputs: Android SDK level (`KNOWN_AFFECTED_DEVICES` expects 36), MNN Chat
 version (determines the MNN conversion version), SmolChat APK install/signature check, and `run-as`
