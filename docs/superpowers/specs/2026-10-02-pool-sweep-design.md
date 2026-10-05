@@ -171,8 +171,9 @@ file forces a retry.
   recorded), `MNNConvert` built with `MNN_BUILD_CONVERTER=ON MNN_BUILD_LLM=ON MNN_LOW_MEMORY=ON
   MNN_SUPPORT_TRANSFORMER_FUSE=ON`, and a separate `.venv_mnn` for `llmexport.py` (CPU `torch`, `transformers`,
   `peft`, `onnx`, `onnxslim`, `onnxruntime`, `sentencepiece`, `numpy<3`, `tqdm`, `yaspin`, `Pillow`,
-  `requests`, `datasets`). SLM_Factory's `scripts/setup_mnn_env.sh` is Linux/SLURM-specific; a Windows
-  equivalent (`scripts/setup_mnn_env.ps1`) covers only these two stages (no pymnn, no CUDA).
+  `requests`, `datasets`). SLM_Factory's `scripts/setup_mnn_env.sh` is Linux/SLURM-specific; this repo's
+  `scripts/setup_mnn.ps1` (Windows) and `scripts/setup_mnn.sh` (macOS/Linux) cover only these two stages (no
+  pymnn, no CUDA), with the exporter's packages in `requirements-mnn.txt`.
 - ~40 GB free disk (the largest model's download plus both conversions).
 
 SLM_Factory exported all 9 pool models at all three precisions with this toolchain (backend matrix job
