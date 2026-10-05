@@ -127,7 +127,7 @@ Options: `--serial`, `--pool`, `--models` (subset), `--backends cpu,opencl`, `--
   - the validation sidecar records the recipe and the MNN commit/version, and a cache hit requires them to
     match, so a Q4 built with the old recipe is never reused as the new one;
   - toolchain located by `SLM_MNN_ROOT` / `SLM_MNN_LLMEXPORT` / `SLM_MNN_CONVERT_BIN` / `SLM_MNN_PYTHON` (same
-    names as SLM_Factory), defaulting to a sibling `MNN/` checkout; Windows executable names
+    names as SLM_Factory), defaulting to a git-ignored `MNN/` checkout and `.venv_mnn` at this repo's root; Windows executable names
     (`MNNConvert.exe`, `Scripts\python.exe`).
   - Not ported: SLM_Factory's pymnn load-validation and thread/GPU cross-checks. They need a pymnn build with
     the LLM API on the laptop; here the phone run itself is the load test.
