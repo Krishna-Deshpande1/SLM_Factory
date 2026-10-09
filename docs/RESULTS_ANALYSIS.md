@@ -1,7 +1,7 @@
 # Are the Galaxy S23 Table 5 numbers right?
 
-Analysis of the first session in [RESULTS.md](RESULTS.md) (Llama-3.2-1B and Qwen2.5-1.5B, Q4_0 / MNN 4-bit, run
-2026-10-07). Paper = arXiv 2607.05475; its closest phone to the S23 is the Xiaomi 14 (Snapdragon 8 Gen 3, one
+Sections 1-3 analyse the first session (Llama-3.2-1B and Qwen2.5-1.5B, Q4_0 / MNN 4-bit, screen on, run
+2026-10-07 morning); section 5 compares it with the screen-off rerun that [RESULTS.md](RESULTS.md) now reports. Paper = arXiv 2607.05475; its closest phone to the S23 is the Xiaomi 14 (Snapdragon 8 Gen 3, one
 generation newer).
 
 ## 1. Noise, or real?
@@ -94,8 +94,82 @@ a gross measurement. Paper oddity to be aware of: its Xiaomi 17 MNN CPU row for 
 
 | Difference | Status |
 |---|---|
-| **Airplane mode** | Works over Wireless debugging when the phone keeps Wi-Fi on in airplane mode (Android remembers this once Wi-Fi is turned back on in airplane mode: `wifi_apm_state = 1`, now set on the S23). The harness now uses airplane mode in that case and keeps the radio-by-radio fallback otherwise. |
-| **Screen off** | A screen-off phone with no USB connection suspends: in a 60 s test with the screen off it stalled 15 times, up to 6.25 s. A partial wake lock held by the adb shell user (`tools/PbWake.java`, run with `app_process`, no app install) keeps the CPU running with the screen off: same test, no stall over 1.07 s. The harness now runs screen-off by default over Wi-Fi with this wake lock. |
-| **28 °C cool-down** | With the screen on, the phone rested at 31.6–32.2 °C (median 31.8 °C) for six hours where it is now. Turning the screen off should lower that; earlier screen-off probe runs sat at 24.9–27 °C. If the screen-off resting temperature is still above 28 °C, a fan blowing across the back of the phone or a cooler room is needed; a ~4 °C difference changes leakage power by a few percent at most, so it matters much less for these short runs than cooling down fully between runs (which the gate already enforces). |
+| **Airplane mode** | Done. Android keeps Wi-Fi on in airplane mode once Wi-Fi has been turned back on there (`wifi_apm_state = 1`), and Wireless debugging survives. The harness uses airplane mode in that case (radio-by-radio fallback otherwise). |
+| **Screen off** | Done. Without a USB connection a screen-off phone suspends (60 s test: 15 stalls, up to 6.25 s). A partial wake lock held by the adb shell user (`tools/PbWake.java`, run with `app_process`, no app install) keeps the CPU running with the screen off (same test: no stall over 1.07 s). Screen off is now the default. |
+| **28 °C cool-down** | Done. With the screen off the phone rests at 24.4 °C battery / 24.0 °C SoC / 26.1 °C skin, so every run starts at ≤ 28 °C by the paper's rule; no fan is needed. (With the screen on it rested at 31.6–32.2 °C.) |
 | **SoC-only energy** | Not reachable without root (no powercap, no Power Stats rails on this phone). |
-| **Phone model** | The S23 is not in the paper; compared with the Xiaomi 14. |
+| **Phone model / RAM** | The S23 is not in the paper (compared with the Xiaomi 14), and it has 8 GB of RAM. Qwen2.5-7B Q4_0 does not fit: llama.cpp's CPU backend keeps a repacked copy of the 4.1 GB weights, 1.6–3 GB of the process ended up in swap and decode slowed to a crawl; on the GPU the phone became unresponsive while loading it. The harness now stops a run whose process has > 512 MB swapped out and records "does not fit in RAM". The paper's phones have 12–16 GB. |
+
+## 5. Screen on vs screen off (same phone, same day)
+
+| Configuration | Prefill t/s, on → off | Decode t/s, on → off | Energy/token change (prefill, decode) |
+|---|--:|--:|--:|
+| Llama-1B llama.cpp CPU | 179.6 → 190.1 (+6%) | 32.6 → 34.6 (+6%) | 0%, +1% |
+| Llama-1B MNN CPU | 191.3 → 202.7 (+6%) | 44.4 → 45.6 (+3%) | −2%, +2% |
+| Llama-1B llama.cpp GPU | 173.8 → 174.4 (0%) | 18.7 → 16.8 (−10%) | −4%, −6% |
+| Llama-1B MNN GPU | 313.2 → 315.3 (+1%) | 17.9 → 14.4 (−20%) | −7%, +1% |
+| Qwen-1.5B llama.cpp CPU | 133.7 → 140.7 (+5%) | 27.2 → 28.8 (+6%) | (no screen-on energy) |
+| Qwen-1.5B MNN CPU | 138.8 → 147.1 (+6%) | 35.4 → 36.0 (+2%) | |
+| Qwen-1.5B llama.cpp GPU | 126.1 → 126.2 (0%) | 16.1 → 13.5 (−16%) | |
+| Qwen-1.5B MNN GPU | 230.8 → 232.3 (+1%) | 11.8 → 9.4 (−20%) | |
+
+- **CPU rows are 2–6% faster** with the screen off, starting at ≤ 28 °C instead of ~31.8 °C (cooler silicon, and the
+  display no longer shares the power budget).
+- **GPU prefill is unchanged, GPU decode is 10–20% slower — but not because of the screen.** A controlled experiment
+  (Llama-1B Q4_0, same commands, conditions interleaved, every run started at ≤ 28 °C, GPU clock and per-cluster CPU
+  clocks sampled every 0.1 s; `results/gpu_decode_*_experiment/`) found:
+
+  | Condition | llama.cpp GPU decode | MNN GPU decode |
+  |---|--:|--:|
+  | screen off, no energy trace (n=4) | 18.31 t/s | 17.70 t/s |
+  | screen off, energy trace (n=2) | 18.66 | 18.57 |
+  | screen off, two traces (n=2) | 18.96 | 20.34 |
+  | screen on, no trace (n=2) | 19.16 | 18.11 |
+  | screen on, energy trace (n=2) | 19.13 | 18.49 |
+
+  The GPU ran at its maximum clock (711–719 MHz) in every condition, so the screen does not clock it down; the screen
+  changes GPU decode by 2–5%, and the energy trace does not slow it (if anything it speeds it up). GPU decode is a
+  long chain of small kernels launched by one CPU thread that mostly waits, so the CPU frequency governor keeps the
+  clusters at low clocks (mid cores 1.1–1.5 GHz with the screen off and nothing else running vs 1.7–1.9 GHz with the
+  screen on); anything that adds CPU load (the screen, a trace) raises the clocks and shortens each launch. That is
+  why GPU decode is sensitive to background conditions at all.
+
+  The 10–20% slower **session** is not explained by any of these conditions. Battery level was tested and ruled
+  out: at 94–97% charge GPU decode was 18.17 / 18.18 t/s (llama.cpp) and 17.81 / 17.70 t/s (MNN), the same as at
+  8–55% (`results/gpu_decode_fullcharge_experiment/`). The most likely remaining cause is a leftover process from a
+  preceding aborted run competing for the CPU: the harness's stop command did not actually kill a benchmark it had
+  "stopped" (fixed 2026-10-09, see [DEBUG.md](DEBUG.md)); this is untested.
+- **Energy per token is reproducible:** the same configuration measured hours apart, screen on vs off, differs by
+  −7% to +2%. Subtracting the idle power measured before each run removes the display's draw, and the remaining
+  differences follow the throughput changes. This is the best evidence that the battery-gauge method is stable.
+
+
+
+  Issues?
+  Here's the verdict on the numbers so far.
+
+1. SmolLM2 135M on MNN GPU: decode at 9.2 tokens/s is real, but it's an MNN problem, not a measurement error.
+
+Every repetition gives the same result (27.6–28.2 s for 256 tokens), so it's not noise.
+Prefill on the same run is very fast: 0.14 s for 256 tokens.
+That works out to about 110 ms per generated token. For a 135M model, that's far too slow to be limited by memory or compute. Something in MNN's GPU decode path for this model costs ~110 ms per token: some operation running slowly or off the GPU, or a per-token overhead.
+Qwen3.5 0.8B on the same backend decodes at 50 tokens/s, and llama.cpp's GPU path gets 39.6 tokens/s on this SmolLM2. So it's specific to MNN with SmolLM2.
+I'll keep the number and footnote it. SmolLM2 360M and Gemma 270M are coming up soon and will show whether it's this model or MNN's handling of small models generally.
+2. "Suspend detected" on the Qwen3.5 MNN GPU runs is a false alarm.
+
+Every Qwen3.5 MNN GPU run reads 1.05–1.08×. The same check reads 1.00–1.015× on every pinned-build MNN GPU run and every CPU run.
+So it follows the newer MNN version, not the phone. That version's llm_bench spends some time outside the prefill and decode intervals it reports. Its log also warns that the -kv option is deprecated, so its internals have changed.
+A real suspend would also hit the CPU and llama.cpp runs, and it doesn't.
+Throughput and energy both use MNN's own timed intervals, so neither is affected. I'll note the warning as a false positive.
+3. Unusual, but consistent and explainable:
+
+On llama.cpp GPU, 8-bit decodes as fast as or faster than 4-bit. Qwen3.5 0.8B: Q8_0 14.6 vs Q4_0 12.9 tokens/s. Qwen3.5 2B: 11.3 for both. GPU decode is limited by launching kernels from the CPU, not by memory bandwidth, so weight size barely matters. This matches what the GPU experiments showed.
+F16 on the CPU is extremely slow (Qwen3.5 2B: 9.3 tokens/s prefill). That's the CPU build's flags, which follow llama.cpp's Android instructions and leave half-precision vector arithmetic off. These numbers are accurate for this build, but F16 could be several times faster with that flag on. I'll note it rather than rebuild mid-run.
+Everything else passes: run-to-run spread under 5%, decode bandwidth in the expected 11–35 GB/s range, plausible implied power, no gate timeouts, no idle-CPU warnings, and no invalid energy.
+
+The queue is still running normally: 5 of 72 pinned-build configurations done, and the phone is holding up.
+
+
+
+11:13 AM
+The queue is running normally. Two things will alert me: a background wait that ends when the queue finishes, a session stops, or the battery limit is hit; and a watch for failed configurations.
