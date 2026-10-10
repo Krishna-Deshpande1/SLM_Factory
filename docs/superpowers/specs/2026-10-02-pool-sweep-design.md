@@ -127,7 +127,7 @@ Options: `--serial`, `--pool`, `--models` (subset), `--backends cpu,opencl`, `--
   - the validation sidecar records the recipe and the MNN commit/version, and a cache hit requires them to
     match, so a Q4 built with the old recipe is never reused as the new one;
   - toolchain located by `SLM_MNN_ROOT` / `SLM_MNN_LLMEXPORT` / `SLM_MNN_CONVERT_BIN` / `SLM_MNN_PYTHON` (same
-    names as SLM_Factory), defaulting to a sibling `MNN/` checkout; Windows executable names
+    names as SLM_Factory), defaulting to a git-ignored `MNN/` checkout and `.venv_mnn` at this repo's root; Windows executable names
     (`MNNConvert.exe`, `Scripts\python.exe`).
   - Not ported: SLM_Factory's pymnn load-validation and thread/GPU cross-checks. They need a pymnn build with
     the LLM API on the laptop; here the phone run itself is the load test.
@@ -171,8 +171,9 @@ file forces a retry.
   recorded), `MNNConvert` built with `MNN_BUILD_CONVERTER=ON MNN_BUILD_LLM=ON MNN_LOW_MEMORY=ON
   MNN_SUPPORT_TRANSFORMER_FUSE=ON`, and a separate `.venv_mnn` for `llmexport.py` (CPU `torch`, `transformers`,
   `peft`, `onnx`, `onnxslim`, `onnxruntime`, `sentencepiece`, `numpy<3`, `tqdm`, `yaspin`, `Pillow`,
-  `requests`, `datasets`). SLM_Factory's `scripts/setup_mnn_env.sh` is Linux/SLURM-specific; a Windows
-  equivalent (`scripts/setup_mnn_env.ps1`) covers only these two stages (no pymnn, no CUDA).
+  `requests`, `datasets`). SLM_Factory's `scripts/setup_mnn_env.sh` is Linux/SLURM-specific; this repo's
+  `scripts/setup_mnn.ps1` (Windows) and `scripts/setup_mnn.sh` (macOS/Linux) cover only these two stages (no
+  pymnn, no CUDA), with the exporter's packages in `requirements-mnn.txt`.
 - ~40 GB free disk (the largest model's download plus both conversions).
 
 SLM_Factory exported all 9 pool models at all three precisions with this toolchain (backend matrix job
