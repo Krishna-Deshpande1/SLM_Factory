@@ -1,6 +1,6 @@
 # Table 5 replication on a Galaxy S23
 
-Measured 2026-10-07; generated 2026-10-09T01:56 by `Benchmark-Harness/paper_table5/results_md.py` from `results/galaxy_s23_pinned_20261007_screenoff`.
+Measured 2026-10-07; generated 2026-10-10T16:59 by `Benchmark-Harness/paper_table5/results_md.py` from `results/galaxy_s23_pinned_20261007_screenoff`.
 
 Reference: *arXiv 2607.05475*, Table 5 (256-token prefill and 256-token decode, w4, llama.cpp and MNN on CPU and OpenCL GPU). Paper values are from `paper_reference.json` (its Table 9, which holds Table 5's rows per phone).
 
@@ -17,21 +17,21 @@ Reference: *arXiv 2607.05475*, Table 5 (256-token prefill and 256-token decode, 
 | Model | Backend | Framework | Prefill S23 | Prefill Xiaomi 14 (paper) | ratio | paper range | Decode S23 | Decode Xiaomi 14 (paper) | ratio | paper range |
 |---|---|---|--:|--:|--:|--:|--:|--:|--:|--:|
 | Qwen2.5-1.5B | CPU | llama.cpp | 140.7 ± 1.3 | 157.2 | 0.90× | 157.2–417.3 | 28.8 ± 0.5 | 34.5 | 0.84× | 34.5–55.7 |
-|  | CPU | MNN | 147.1 ± 5.0 | 259.5 | 0.57× | 228.3–349.5 | 36.0 ± 0.2 | 45.7 | 0.79× | 19.0–49.5 |
+|  | CPU | MNN | 147.1 ± 5.0 | 259.5 | 0.57× | 228.3–349.5 | 35.6 ± 0.2 | 45.7 | 0.78× | 19.0–49.5 |
 |  | GPU | llama.cpp | 126.2 ± 0.1 | 365.7 | 0.35× | 365.7–754.8 | 13.5 ± 0.2 | 31.8 | 0.42× | 31.8–50.3 |
-|  | GPU | MNN | 232.3 ± 1.7 | 272.5 | 0.85× | 272.5–434.1 | 9.4 ± 0.3 | 26.2 | 0.36× | 12.3–45.8 |
+|  | GPU | MNN | 232.3 ± 1.7 | 272.5 | 0.85× | 272.5–434.1 | 9.3 ± 0.3 | 26.2 | 0.35× | 12.3–45.8 |
 | Qwen2.5-7B | CPU | llama.cpp | FAIL | 34.1 | – | 34.1–85.4 | FAIL | 8.7 | – | 8.7–14.3 |
 |  | CPU | MNN | – | 50.8 | – | 30.0–80.3 | – | 7.2 | – | 7.2–12.2 |
 |  | GPU | llama.cpp | – | 84.6 | – | 84.6–171.6 | – | 5.4 | – | 5.4–12.2 |
 |  | GPU | MNN | – | 62.4 | – | 62.4–102.1 | – | 11.7 | – | 8.9–12.7 |
 | Llama-3.2-1B | CPU | llama.cpp | 190.1 ± 2.2 | 166.3 | 1.14× | 166.3–386.3 | 34.6 ± 0.6 | 41.9 | 0.82× | 41.9–76.1 |
-|  | CPU | MNN | 202.7 ± 7.0 | 321.9 | 0.63× | 29.8–324.8 | 45.6 ± 0.3 | 55.4 | 0.82× | 3.2–66.6 |
+|  | CPU | MNN | 202.7 ± 7.0 | 321.9 | 0.63× | 29.8–324.8 | 45.1 ± 0.3 | 55.4 | 0.81× | 3.2–66.6 |
 |  | GPU | llama.cpp | 174.4 ± 0.3 | 450.1 | 0.39× | 450.1–986.8 | 16.8 ± 0.2 | 22.5 | 0.75× | 22.5–64.4 |
-|  | GPU | MNN | 315.3 ± 0.2 | 371.3 | 0.85× | 371.3–692.1 | 14.4 ± 0.2 | 44.4 | 0.32× | 16.8–60.7 |
+|  | GPU | MNN | 315.3 ± 0.2 | 371.3 | 0.85× | 371.3–692.1 | 14.2 ± 0.2 | 44.4 | 0.32× | 16.8–60.7 |
 | Llama-3.2-3B | CPU | llama.cpp | 64.0 ± 0.4 | 58.6 | 1.09× | 58.6–119.7 | 14.4 ± 0.3 | 17.1 | 0.84× | 17.1–30.5 |
-|  | CPU | MNN | 70.9 ± 2.2 | 113.1 | 0.63× | 66.1–123.4 | 18.0 ± 0.1 | 23.7 | 0.76× | 12.4–24.9 |
+|  | CPU | MNN | 70.9 ± 2.2 | 113.1 | 0.63× | 66.1–123.4 | 17.9 ± 0.1 | 23.7 | 0.76× | 12.4–24.9 |
 |  | GPU | llama.cpp | 66.3 ± 0.1 | 161.1 | 0.41× | 161.1–357.6 | 10.4 ± 0.1 | 11.1 | 0.94× | 11.1–25.2 |
-|  | GPU | MNN | 122.2 ± 0.1 | 145.3 | 0.84× | 145.3–248.7 | 8.5 ± 0.1 | 17.1 | 0.50× | 12.1–25.4 |
+|  | GPU | MNN | 122.2 ± 0.1 | 145.3 | 0.84× | 145.3–248.7 | 8.4 ± 0.1 | 17.1 | 0.49× | 12.1–25.4 |
 
 ## Energy (µJ/token), w4
 
@@ -40,21 +40,21 @@ S23: whole-phone battery energy (Perfetto battery current × voltage) **net of i
 | Model | Backend | Framework | Prefill S23 | Prefill paper (X17 / OP15) | Decode S23 | Decode paper (X17 / OP15) |
 |---|---|---|--:|--:|--:|--:|
 | Qwen2.5-1.5B | CPU | llama.cpp | 4.6e4 | 3.3e4 / 1.5e4 | 2.8e5 | 1.2e5 / 9.7e4 |
-|  | CPU | MNN | 4.0e4 | 2.3e4 / 1.5e4 | 2.5e5 | 1.3e5 / 9.2e4 |
+|  | CPU | MNN | 4.0e4 | 2.3e4 / 1.5e4 | 2.6e5 | 1.3e5 / 9.2e4 |
 |  | GPU | llama.cpp | 3.4e4 | 1.0e4 / 1.1e4 | 2.9e5 | 1.1e5 / 1.4e5 |
-|  | GPU | MNN | 2.3e4 | 8.6e3 / 1.7e4 | 2.8e5 | 9.4e4 / 9.9e4 |
+|  | GPU | MNN | 2.3e4 | 8.6e3 / 1.7e4 | 2.9e5 | 9.4e4 / 9.9e4 |
 | Qwen2.5-7B | CPU | llama.cpp | FAIL | 1.1e5 / 7.9e4 | FAIL | 5.0e5 / 4.4e5 |
 |  | CPU | MNN | – | 9.8e4 / 1.0e5 | – | 4.6e5 / 3.9e5 |
 |  | GPU | llama.cpp | – | 4.0e4 / 6.5e4 | – | 3.2e5 / 5.7e5 |
 |  | GPU | MNN | – | 4.1e4 / 9.1e4 | – | 3.1e5 / 5.1e5 |
 | Llama-3.2-1B | CPU | llama.cpp | 3.4e4 | 1.1e4 / 1.6e4 | 2.4e5 | 1.4e5 / 7.4e4 |
-|  | CPU | MNN | 3.1e4 | 8.7e3 / 1.5e4 | 2.0e5 | 7.9e4 / 6.6e4 |
+|  | CPU | MNN | 3.1e4 | 8.7e3 / 1.5e4 | 2.1e5 | 7.9e4 / 6.6e4 |
 |  | GPU | llama.cpp | 2.4e4 | 6.3e3 / 5.4e3 | 2.6e5 | 1.4e5 / 1.1e5 |
 |  | GPU | MNN | 1.5e4 | 6.9e3 / 1.3e4 | 2.0e5 | 5.5e4 / 7.9e4 |
 | Llama-3.2-3B | CPU | llama.cpp | 9.5e4 | 5.4e4 / 4.1e4 | 5.4e5 | 2.9e5 / 2.1e5 |
 |  | CPU | MNN | 8.6e4 | 6.8e4 / 4.4e4 | 4.9e5 | 2.1e5 / 1.8e5 |
 |  | GPU | llama.cpp | 7.0e4 | 2.2e4 / 2.1e4 | 5.3e5 | 1.8e5 / 2.5e5 |
-|  | GPU | MNN | 4.3e4 | 2.2e4 / 3.5e4 | 4.8e5 | 2.0e5 / 2.0e5 |
+|  | GPU | MNN | 4.3e4 | 2.2e4 / 3.5e4 | 4.9e5 | 2.0e5 / 2.0e5 |
 
 Markers: `FAIL` = did not run (e.g. out of memory; see the configuration's JSON), `–` = not run yet, `n/a` = no valid energy, `*` = energy recorded but invalid, `^` = started before the cool-down gate passed, `~` = GPU run whose weight type has no OpenCL matmul kernel.
 
