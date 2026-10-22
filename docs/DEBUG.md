@@ -73,7 +73,7 @@ MNN GPU decode on the newer MNN by 6–8%. Both are fixed, and the affected resu
 - `results_md.py` has hard-coded text that is now wrong for the screen-off results ("screen at minimum brightness",
   "Q4_K_M (supplementary)" when there is no such section) and labels Q8_0/F16 rows as "other 4-bit types" if pool
   folders are passed; its Sessions table can show sessions from another folder.
-- `docs/RESULTS_ANALYSIS.md` still says the full-charge GPU test is untested; it was run and refutes the
+- `docs/RESULTS_ANALYSIS.md` (since merged into RESULTS.md) said the full-charge GPU test is untested; it was run and refutes the
   battery-level explanation (see section 4). A few quoted ranges are slightly off (paper implied power for Llama-1B
   is 0.9–10.7 W, not 0.9–13.8 W; "GPU wins prefill on every phone" has one exception).
 - `docs/RESULTS.md` shows the Qwen2.5-7B GPU/MNN rows as "not run yet"; the GPU run was attempted and hung the phone.

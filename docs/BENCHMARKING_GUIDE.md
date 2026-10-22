@@ -1,7 +1,7 @@
 # Benchmarking a phone the same way as the Galaxy S23
 
 How to measure the SLM_Factory model pool on an Android phone with exactly the protocol, scripts and flags used for
-the Galaxy S23 results in [RESULTS2.md](RESULTS2.md). The method follows Table 5 of arXiv 2607.05475: 256-token
+the Galaxy S23 results in [RESULTS.md](RESULTS.md). The method follows Table 5 of arXiv 2607.05475: 256-token
 prefill and 256-token decode, throughput in tokens/s and energy in µJ/token, llama.cpp and MNN, CPU and OpenCL GPU.
 All scripts are in `Benchmark-Harness/paper_table5/`; run every command from that folder. The commands are written
 for Windows PowerShell; they are the same on macOS with `/` paths.
@@ -148,15 +148,31 @@ logs to `models\queue.log`. It is gitignored, so copy it from Evan if useful.
   .venv_pb\Scripts\python run_paper_table5.py --serial S --results-dir results\slm_pool_<phone>_pinned --recover-energy
   ```
 
+## Storage and memory (after the benchmarks)
+
+```
+.venv_pb\Scripts\python -u memory_usage.py --serial S --ref pinned --pool-file pools\slm_factory_android_pool.py --results-dir results\slm_pool_<phone>_pinned
+.venv_pb\Scripts\python -u memory_usage.py --serial S --ref head --pool-file pools\slm_factory_android_pool.py --results-dir results\slm_pool_<phone>_head
+```
+
+- **Storage:** the size of the model files as pushed to the phone.
+- **Memory:** one run of the same workload (256-token prompt, then 256 generated tokens) per configuration. It
+  records the process's peak total memory from `dumpsys meminfo` (PSS, GPU buffers included) and the GPU share
+  ("GL mtrack"), plus peak resident memory, swap and the drop in the phone's free memory.
+- Use `dumpsys meminfo`, not just resident memory: a GPU run's weights and KV cache live in GPU buffers that
+  resident memory doesn't count.
+- It takes about 1 minute per small configuration and needs no cool-down. Results go to `<results-dir>/memory/`,
+  and `results_md.py` adds them to the pool table.
+
 ## Reports
 
 ```
 .venv_pb\Scripts\python report.py results\slm_pool_<phone>_pinned results\slm_pool_<phone>_head --out results\slm_pool_<phone>_report
-.venv_pb\Scripts\python results2.py
+.venv_pb\Scripts\python results_md.py
 ```
 
 - `report.py` writes `TABLE5.md`, `.html` and `.csv` in the paper's layout.
-- `results2.py` writes `docs/RESULTS2.md` and `docs/figures/`. Edit its `T5_DIR` / `POOL_DIRS` to point at the
+- `results_md.py` writes `docs/RESULTS.md` and `docs/figures/`. Edit its `T5_DIR` / `POOL_DIRS` to point at the
   new phone's folders.
 
 ## Expected failures (not problems with your setup)
@@ -164,7 +180,7 @@ logs to `models\queue.log`. It is gitignored, so copy it from Evan if useful.
 - **F16 4B models and some 2B F16 / 4B Q8 configurations** don't fit in 8 GB of RAM. The harness records "does
   not fit in RAM" or stops a run that swaps more than 512 MB.
 - **MNN GPU with 16-bit weights** segfaults (exit 139) on the pinned MNN for every model we tried.
-- **llama.cpp GPU Q8_0 / F16 prefill** at `eadc418` is slower than decode for the small models. RESULTS2.md flags
+- **llama.cpp GPU Q8_0 / F16 prefill** at `eadc418` is slower than decode for the small models. RESULTS.md flags
   these rows as not citable.
 
 `python tests\fake_phone_test.py` checks the harness end to end without a phone; run it after changing any code.
