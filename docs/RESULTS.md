@@ -1,14 +1,14 @@
 # Results: four phones in the paper's Table 5 layout
 
-Generated 2026-10-21T17:49 by `Benchmark-Harness/paper_table5/results_all_md.py` from `results/slm_pool_<phone>_*`. Reference: arXiv 2607.05475, Table 5: 256-token prefill and 256-token decode; throughput in tokens/s, energy in µJ/token (tables) or mJ/token (figures; 1 mJ = 1000 µJ).
+Generated 2026-10-27T13:07 by `Benchmark-Harness/paper_table5/results_all_md.py` from `results/slm_pool_<phone>_*`. Reference: arXiv 2607.05475, Table 5: 256-token prefill and 256-token decode; throughput in tokens/s, energy in µJ/token (tables) or mJ/token (figures; 1 mJ = 1000 µJ).
 
 ## Phones and status
 
 | Phone | Hardware | Configurations | Measured | With energy | With peak memory | Cannot run | Not run | Energy method | Screen during runs |
 |---|---|--:|--:|--:|--:|--:|--:|---|---|
 | Galaxy S23 | Snapdragon 8 Gen 2 (SM8550), Adreno 740, 8 GB (6.9 GiB usable), Android 14 | 104 | 82 | 81 | 82 | 22 | 0 | `perfetto:current` | off + wake lock |
-| OnePlus 15 | Snapdragon 8 Elite Gen 5 (SM8850), 16 GB (14.8 GiB usable), Android 16 | 104 | 93 | 87 | 0 | 11 | 0 | `perfetto:current` | off + wake lock |
-| OnePlus 8 Pro | Snapdragon 865 (SM8250), Adreno 650, 12 GB (11.2 GiB usable), Android 13 | 104 | 79 | 37 | 77 | 17 | 8 | `bm:current_now` | on, minimum brightness; panel off (system awake) |
+| OnePlus 15 | Snapdragon 8 Elite Gen 5 (SM8850), 16 GB (14.8 GiB usable), Android 16 | 104 | 93 | 93 | 93 | 11 | 0 | `perfetto:current` | off + wake lock |
+| OnePlus 8 Pro | Snapdragon 865 (SM8250), Adreno 650, 12 GB (11.2 GiB usable), Android 13 | 104 | 79 | 74 | 79 | 17 | 8 | `bm:current_now` | on, minimum brightness; panel off (system awake) |
 | Redmi 9A | Helio G25 (MT6762), 8x Cortex-A53, no OpenCL, 4 GB (3.7 GiB usable), 32-bit Android 11 | 52 | 34 | 34 | 34 | 18 | 0 | `sysfs:current_avg` | off + wake lock |
 
 - **Configurations:** 9 models × 3 precisions × 2 engines × 2 backends without Qwen3.5-4B F16 (never prepared) = 104 per GPU phone; 52 on the Redmi 9A, which has no OpenCL. The Galaxy S23's extra Qwen3.5-4B F16 rows (all four do not fit) are left out so every phone has the same table.
@@ -22,39 +22,47 @@ Generated 2026-10-21T17:49 by `Benchmark-Harness/paper_table5/results_all_md.py`
 
 | Model | Backend | Framework | Prefill S23 | OP15 | paper X17 | OP15 | X15 | X14 | Decode S23 | OP15 | paper X17 | OP15 | X15 | X14 |
 |---|---|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
-| Qwen2.5-1.5B | CPU | llama.cpp | 140.7 ± 1.3 | 283.2 ± 1.7 | 417.3 | 299.9 | 329.2 | 157.2 | 28.8 ± 0.5 | 45.2 ± 0.3 | 51.6 | 55.7 | 53.9 | 34.5 |
-|  | CPU | MNN | 147.1 ± 5.0 | 111.9 ± 0.8 | 349.5 | 228.3 | 259.4 | 259.5 | 35.6 ± 0.2 | 40.9 ± 0.2 | 19.0 | 47.5 | 49.5 | 45.7 |
-|  | GPU | llama.cpp | 126.2 ± 0.1 | 747.6 ± 6.6 | 569.7 | 754.8 | 680.9 | 365.7 | 13.5 ± 0.2 | 18.5 ± 0.3 | 38.8 | 50.3 | 48.6 | 31.8 |
-|  | GPU | MNN | 232.3 ± 1.7 | 475.8 ± 2.1 | 392.2 | 434.1 | 406.1 | 272.5 | 9.3 ± 0.3 | 11.4 ± 0.2 | 39.1 | 12.3 | 45.8 | 26.2 |
-| Llama-3.2-1B | CPU | llama.cpp | 190.1 ± 2.2 | 369.9 ± 4.1 | 326.8 | 287.6 | 386.3 | 166.3 | 34.6 ± 0.6 | 56.1 ± 0.6 | 76.1 | 72.2 | 70.1 | 41.9 |
-|  | CPU | MNN | 202.7 ± 7.0 | 150.0 ± 1.2 | 29.8 | 184.8 | 324.8 | 321.9 | 45.1 ± 0.3 | 52.9 ± 0.3 | 3.2 | 61.6 | 66.6 | 55.4 |
-|  | GPU | llama.cpp | 174.4 ± 0.3 | 1073.0 ± 9.4 | 744.0 | 986.8 | 862.1 | 450.1 | 16.8 ± 0.2 | 37.6 ± 0.2 | 46.1 | 64.4 | 57.1 | 22.5 |
-|  | GPU | MNN | 315.3 ± 0.2 | 681.8 ± 4.5 | 692.1 | 669.8 | 534.4 | 371.3 | 14.2 ± 0.2 | 18.3 ± 0.3 | 16.8 | 21.6 | 60.7 | 44.4 |
-| Llama-3.2-3B | CPU | llama.cpp | 64.0 ± 0.4 | 134.7 ± 1.6 | 119.7 | 109.8 | 114.8 | 58.6 | 14.4 ± 0.3 | 23.9 ± 0.1 | 29.9 | 30.5 | 27.1 | 17.1 |
-|  | CPU | MNN | 70.9 ± 2.2 | 67.0 ± 22.3 | 123.4 | 66.1 | 90.8 | 113.1 | 17.9 ± 0.1 | 21.4 ± 0.0 | 12.4 | 24.9 | 24.0 | 23.7 |
-|  | GPU | llama.cpp | 66.3 ± 0.1 | 413.6 ± 1.3 | 224.8 | 357.6 | 306.6 | 161.1 | 10.4 ± 0.1 | 19.3 ± 0.1 | 20.0 | 25.0 | 25.2 | 11.1 |
-|  | GPU | MNN | 122.2 ± 0.1 | 258.3 ± 0.9 | 201.2 | 248.7 | 205.3 | 145.3 | 8.4 ± 0.1 | 11.2 ± 0.0 | 24.4 | 12.1 | 25.4 | 17.1 |
+| Qwen2.5-1.5B | CPU | llama.cpp | 140.7 ± 1.3 | 162.5 ± 0.4 | 417.3 | 299.9 | 329.2 | 157.2 | 28.8 ± 0.5 | 41.9 ± 0.1 | 51.6 | 55.7 | 53.9 | 34.5 |
+|  | CPU | MNN | 147.1 ± 5.0 | 137.8 ± 45.3 | 349.5 | 228.3 | 259.4 | 259.5 | 35.6 ± 0.2 | 40.6 ± 0.8 | 19.0 | 47.5 | 49.5 | 45.7 |
+|  | GPU | llama.cpp | 126.2 ± 0.1 | 763.7 ± 1.9 | 569.7 | 754.8 | 680.9 | 365.7 | 13.5 ± 0.2 | 35.2 ± 0.1 | 38.8 | 50.3 | 48.6 | 31.8 |
+|  | GPU | MNN | 232.3 ± 1.7 | 474.4 ± 0.5 | 392.2 | 434.1 | 406.1 | 272.5 | 9.3 ± 0.3 | 27.9 ± 0.2 | 39.1 | 12.3 | 45.8 | 26.2 |
+| Llama-3.2-1B | CPU | llama.cpp | 190.1 ± 2.2 | 216.8 ± 0.1 | 326.8 | 287.6 | 386.3 | 166.3 | 34.6 ± 0.6 | 49.0 ± 0.0 | 76.1 | 72.2 | 70.1 | 41.9 |
+|  | CPU | MNN | 202.7 ± 7.0 | 184.6 ± 59.3 | 29.8 | 184.8 | 324.8 | 321.9 | 45.1 ± 0.3 | 51.7 ± 1.0 | 3.2 | 61.6 | 66.6 | 55.4 |
+|  | GPU | llama.cpp | 174.4 ± 0.3 | 1101.1 ± 1.9 | 744.0 | 986.8 | 862.1 | 450.1 | 16.8 ± 0.2 | 40.1 ± 0.1 | 46.1 | 64.4 | 57.1 | 22.5 |
+|  | GPU | MNN | 315.3 ± 0.2 | 686.1 ± 0.3 | 692.1 | 669.8 | 534.4 | 371.3 | 14.2 ± 0.2 | 38.8 ± 0.0 | 16.8 | 21.6 | 60.7 | 44.4 |
+| Llama-3.2-3B | CPU | llama.cpp | 64.0 ± 0.4 | 77.8 ± 0.2 | 119.7 | 109.8 | 114.8 | 58.6 | 14.4 ± 0.3 | 21.5 ± 0.0 | 29.9 | 30.5 | 27.1 | 17.1 |
+|  | CPU | MNN | 70.9 ± 2.2 | 66.5 ± 22.0 | 123.4 | 66.1 | 90.8 | 113.1 | 17.9 ± 0.1 | 21.6 ± 0.0 | 12.4 | 24.9 | 24.0 | 23.7 |
+|  | GPU | llama.cpp | 66.3 ± 0.1 | 423.2 ± 0.5 | 224.8 | 357.6 | 306.6 | 161.1 | 10.4 ± 0.1 | 20.4 ± 0.0 | 20.0 | 25.0 | 25.2 | 11.1 |
+|  | GPU | MNN | 122.2 ± 0.1 | 259.1 ± 0.1 | 201.2 | 248.7 | 205.3 | 145.3 | 8.4 ± 0.1 | 24.6 ± 0.1 | 24.4 | 12.1 | 25.4 | 17.1 |
+| Qwen2.5-7B | CPU | llama.cpp | – | 36.9 ± 0.1 | 85.4 | 58.6 | 55.1 | 34.1 | – | 11.0 ± 0.0 | 12.6 | 14.3 | 13.2 | 8.7 |
+|  | CPU | MNN | – | 29.9 ± 10.4 | 80.3 | 30.0 | 58.4 | 50.8 | – | 10.5 ± 0.1 | 9.6 | 12.2 | 12.2 | 7.2 |
+|  | GPU | llama.cpp | – | 198.1 ± 3.1 | 137.5 | 171.6 | 141.8 | 84.6 | – | 11.3 ± 0.0 | 10.2 | 12.2 | 11.7 | 5.4 |
+|  | GPU | MNN | – | 97.4 ± 2.8 | 78.4 | 102.1 | 86.2 | 62.4 | – | 11.5 ± 0.0 | 8.9 | 10.6 | 12.7 | 11.7 |
 
-X17 = Xiaomi 17, OP15 = OnePlus 15, X15 = Xiaomi 15, X14 = Xiaomi 14 (paper values). OnePlus 8 Pro and Redmi 9A did not run the paper's models (only the SLM_Factory pool, sections 3–4). Qwen2.5-7B is not shown: it does not fit in the S23's 8 GB, and the OnePlus 15's 7B session did not complete.
+X17 = Xiaomi 17, OP15 = OnePlus 15, X15 = Xiaomi 15, X14 = Xiaomi 14 (paper values). OnePlus 8 Pro and Redmi 9A did not run the paper's models (only the SLM_Factory pool, sections 3–4). Qwen2.5-7B does not fit in the S23's 8 GB (–). OnePlus 15 paper-model rows: 1 warm-up + 3 repetitions, wake/sleep key pair before each run; four cells (Llama-3.2-1B and Qwen2.5-1.5B llama.cpp CPU, Qwen2.5-1.5B and Qwen2.5-7B MNN CPU) are reruns after a slow-governor first pass or a swap-guard stop (first-pass prefill: 92.3, 28.8, 111.7 tokens/s and failed).
 
 ### Energy (µJ/token), 4-bit
 
 | Model | Backend | Framework | Prefill S23 | OP15 | paper X17 | OP15 | Decode S23 | OP15 | paper X17 | OP15 |
 |---|---|---|--:|--:|--:|--:|--:|--:|--:|--:|
-| Qwen2.5-1.5B | CPU | llama.cpp | 4.6e4 | – | 3.3e4 | 1.5e4 | 2.8e5 | – | 1.2e5 | 9.7e4 |
-|  | CPU | MNN | 4.0e4 | – | 2.3e4 | 1.5e4 | 2.6e5 | – | 1.3e5 | 9.2e4 |
-|  | GPU | llama.cpp | 3.4e4 | – | 1.0e4 | 1.1e4 | 2.9e5 | – | 1.1e5 | 1.4e5 |
-|  | GPU | MNN | 2.3e4 | – | 8.6e3 | 1.7e4 | 2.9e5 | – | 9.4e4 | 9.9e4 |
-| Llama-3.2-1B | CPU | llama.cpp | 3.4e4 | – | 1.1e4 | 1.6e4 | 2.4e5 | – | 1.4e5 | 7.4e4 |
-|  | CPU | MNN | 3.1e4 | – | 8.7e3 | 1.5e4 | 2.1e5 | – | 7.9e4 | 6.6e4 |
-|  | GPU | llama.cpp | 2.4e4 | – | 6.3e3 | 5.4e3 | 2.6e5 | – | 1.4e5 | 1.1e5 |
-|  | GPU | MNN | 1.5e4 | – | 6.9e3 | 1.3e4 | 2.0e5 | – | 5.5e4 | 7.9e4 |
-| Llama-3.2-3B | CPU | llama.cpp | 9.5e4 | – | 5.4e4 | 4.1e4 | 5.4e5 | – | 2.9e5 | 2.1e5 |
-|  | CPU | MNN | 8.6e4 | – | 6.8e4 | 4.4e4 | 4.9e5 | – | 2.1e5 | 1.8e5 |
-|  | GPU | llama.cpp | 7.0e4 | – | 2.2e4 | 2.1e4 | 5.3e5 | – | 1.8e5 | 2.5e5 |
-|  | GPU | MNN | 4.3e4 | – | 2.2e4 | 3.5e4 | 4.9e5 | – | 2.0e5 | 2.0e5 |
+| Qwen2.5-1.5B | CPU | llama.cpp | 4.6e4 | 1.2e4 | 3.3e4 | 1.5e4 | 2.8e5 | 9.5e4 | 1.2e5 | 9.7e4 |
+|  | CPU | MNN | 4.0e4 | 1.8e4 | 2.3e4 | 1.5e4 | 2.6e5 | 8.3e4 | 1.3e5 | 9.2e4 |
+|  | GPU | llama.cpp | 3.4e4 | 8.1e3 | 1.0e4 | 1.1e4 | 2.9e5 | 1.3e5 | 1.1e5 | 1.4e5 |
+|  | GPU | MNN | 2.3e4 | 1.1e4 | 8.6e3 | 1.7e4 | 2.9e5 | 1.1e5 | 9.4e4 | 9.9e4 |
+| Llama-3.2-1B | CPU | llama.cpp | 3.4e4 | 9.3e3 | 1.1e4 | 1.6e4 | 2.4e5 | 8.1e4 | 1.4e5 | 7.4e4 |
+|  | CPU | MNN | 3.1e4 | 1.3e4 | 8.7e3 | 1.5e4 | 2.1e5 | 6.2e4 | 7.9e4 | 6.6e4 |
+|  | GPU | llama.cpp | 2.4e4 | 4.2e3 | 6.3e3 | 5.4e3 | 2.6e5 | 1.1e5 | 1.4e5 | 1.1e5 |
+|  | GPU | MNN | 1.5e4 | 8.1e3 | 6.9e3 | 1.3e4 | 2.0e5 | 8.5e4 | 5.5e4 | 7.9e4 |
+| Llama-3.2-3B | CPU | llama.cpp | 9.5e4 | 2.9e4 | 5.4e4 | 4.1e4 | 5.4e5 | 2.1e5 | 2.9e5 | 2.1e5 |
+|  | CPU | MNN | 8.6e4 | 3.9e4 | 6.8e4 | 4.4e4 | 4.9e5 | 1.5e5 | 2.1e5 | 1.8e5 |
+|  | GPU | llama.cpp | 7.0e4 | 1.4e4 | 2.2e4 | 2.1e4 | 5.3e5 | 2.4e5 | 1.8e5 | 2.5e5 |
+|  | GPU | MNN | 4.3e4 | 2.2e4 | 2.2e4 | 3.5e4 | 4.9e5 | 2.1e5 | 2.0e5 | 2.0e5 |
+| Qwen2.5-7B | CPU | llama.cpp | – | 6.2e4 | 1.1e5 | 7.9e4 | – | 4.2e5 | 5.0e5 | 4.4e5 |
+|  | CPU | MNN | – | 1.1e5 | 9.8e4 | 1.0e5 | – | 3.4e5 | 4.6e5 | 3.9e5 |
+|  | GPU | llama.cpp | – | 3.5e4 | 4.0e4 | 6.5e4 | – | 4.8e5 | 3.2e5 | 5.7e5 |
+|  | GPU | MNN | – | 4.9e4 | 4.1e4 | 9.1e4 | – | 4.4e5 | 3.1e5 | 5.1e5 |
 
-The OnePlus 15's paper-model runs have no valid energy (they ran before its energy method was settled); its pool rows in section 3 do.
+Energy is whole-phone net of idle (ours) against SoC-only (paper), so ours should read higher; on the OnePlus 15 most cells read lower instead (section 2).
 
 ## 2. How our phones compare with the paper
 
@@ -67,7 +75,7 @@ The OnePlus 15's paper-model runs have no valid energy (they ran before its ener
 *Each row is one configuration: our throughput divided by the paper's value for the same phone (OnePlus 15) or its closest phone (S23: Xiaomi 14). The shaded band is ±25%.*
 
 - **Galaxy S23** (proxy: the Xiaomi 14, one chip generation newer): 13 of 24 throughput cells within ±25%; median ratio 0.74 for prefill, 0.77 for decode.
-- **OnePlus 15** (the same phone: the OnePlus 15 is one of the paper's four): 20 of 24 throughput cells within ±25%; median ratio 1.03 for prefill, 0.83 for decode.
+- **OnePlus 15** (the same phone: the OnePlus 15 is one of the paper's four): 21 of 32 throughput cells within ±25%; median ratio 1.00 for prefill, 0.85 for decode. Energy per token against the paper's own OnePlus 15 values: median 0.73× for prefill, 0.95× for decode; ours is whole-phone net of idle and the paper's SoC-only, so ours should not read lower, yet prefill does in most cells. The paper's SoC counters and our idle-subtracted battery reading split the phone's power differently, so treat the absolute comparison as approximate.
 - **OnePlus 8 Pro and Redmi 9A** are not in the paper and have no close proxy (the Snapdragon 865 is four generations older than the Xiaomi 14; the Helio G25 is an entry-level chip), so they are compared with the other phones on the pool in sections 3–4.
 
 ## 3. SLM_Factory model pool on every phone
@@ -209,120 +217,120 @@ Prefill slower than decode (10 llama.cpp GPU rows): `smollm2-135m__Q8_0__llama.c
 
 ### 3.2 OnePlus 15
 
-Snapdragon 8 Elite Gen 5 (SM8850), 16 GB (14.8 GiB usable), Android 16. 104 configurations: 93 measured (87 with energy, 0 with peak memory), 11 cannot run, 0 not run.
+Snapdragon 8 Elite Gen 5 (SM8850), 16 GB (14.8 GiB usable), Android 16. 104 configurations: 93 measured (93 with energy, 93 with peak memory), 11 cannot run, 0 not run.
 
 | Model | Backend | Framework | Quant. | Storage MB | Peak memory MB | Prefill t/s | Prefill µJ/token | Decode t/s | Decode µJ/token |
 |---|---|---|---|--:|--:|--:|--:|--:|--:|
-| SmolLM2-135M | CPU | llama.cpp | Q4_0 | 92 | – | 1032.0 ± 1.8 | – | 260.9 ± 0.2 | – |
-|  | CPU | MNN | Q4 | 87 | – | 1027.0 ± 3.5 | – | 205.6 ± 0.3 | – |
-|  | GPU | llama.cpp | Q4_0 | 92 | – | 3634.0 ± 11.1 | – | 93.2 ± 2.9 | – |
-|  | GPU | MNN | Q4 | 87 | – | 3666.1 ± 12.2 | – | 42.2 ± 0.1 | – |
-|  | CPU | llama.cpp | Q8_0 | 145 | – | 1045.1 ± 0.5 | 1.4e3 | 226.1 ± 0.6 | 1.3e4 |
-|  | CPU | MNN | Q8 | 154 | – | 1087.3 ± 8.3 | 1.6e3 | 184.9 ± 0.1 | 1.6e4 |
-|  | GPU | llama.cpp | Q8_0 | 145 | – | 1895.8 ± 11.2 | 1.4e3 | 99.3 ± 0.5 | 3.4e4 |
-|  | GPU | MNN | Q8 | 154 | – | 3625.6 ± 11.4 | 9.0e2 | 40.0 ± 0.4 | 3.8e4 |
-|  | CPU | llama.cpp | F16 | 271 | – | 260.4 ± 2.1 | 8.7e3 | 118.5 ± 0.5 | 2.7e4 |
-|  | CPU | MNN | F16 | 272 | – | 845.1 ± 261.3 | 2.0e3 | 126.7 ± 0.4 | 1.8e4 |
-|  | GPU | llama.cpp | F16 | 271 | – | 2429.8 ± 7.0 | 1.0e3 | 97.5 ± 1.1 | 3.2e4 |
+| SmolLM2-135M | CPU | llama.cpp | Q4_0 | 92 | 220 | 1032.0 ± 1.8 | 1.3e3 | 260.9 ± 0.2 | 1.2e4 |
+|  | CPU | MNN | Q4 | 87 | 170 | 1027.0 ± 3.5 | 1.2e3 | 205.6 ± 0.3 | 9.9e3 |
+|  | GPU | llama.cpp | Q4_0 | 92 | 791 (694 GPU) | 3634.0 ± 11.1 | 1.1e3 | 93.2 ± 2.9 | 3.2e4 |
+|  | GPU | MNN | Q4 | 87 | 274 (125 GPU) | 3666.1 ± 12.2 | 9.0e2 | 42.2 ± 0.1 | 3.6e4 |
+|  | CPU | llama.cpp | Q8_0 | 145 | 326 | 1045.1 ± 0.5 | 1.4e3 | 226.1 ± 0.6 | 1.3e4 |
+|  | CPU | MNN | Q8 | 154 | 238 | 1087.3 ± 8.3 | 1.6e3 | 184.9 ± 0.1 | 1.6e4 |
+|  | GPU | llama.cpp | Q8_0 | 145 | 846 (748 GPU) | 1895.8 ± 11.2 | 1.4e3 | 99.3 ± 0.5 | 3.4e4 |
+|  | GPU | MNN | Q8 | 154 | 342 (192 GPU) | 3625.6 ± 11.4 | 9.0e2 | 40.0 ± 0.4 | 3.8e4 |
+|  | CPU | llama.cpp | F16 | 271 | 309 | 260.4 ± 2.1 | 8.7e3 | 118.5 ± 0.5 | 2.7e4 |
+|  | CPU | MNN | F16 | 272 | 352 (1 GPU) | 845.1 ± 261.3 | 2.0e3 | 126.7 ± 0.4 | 1.8e4 |
+|  | GPU | llama.cpp | F16 | 271 | 1,265 (872 GPU) | 2429.8 ± 7.0 | 1.0e3 | 97.5 ± 1.1 | 3.2e4 |
 |  | GPU | MNN | F16 | 272 | crashed | FAIL | FAIL | FAIL | FAIL |
-| Gemma-3-270M | CPU | llama.cpp | Q4_0 | 241 | – | 1090.2 ± 1.2 | 1.8e3 | 185.6 ± 0.8 | 1.6e4 |
-|  | CPU | MNN | Q4 | 176 | – | 1278.4 ± 302.1 | – | 116.0 ± 0.2 | – |
-|  | GPU | llama.cpp | Q4_0 | 241 | – | 2874.9 ± 4.4 | 1.3e3 | 73.2 ± 2.8 | 3.6e4 |
-|  | GPU | MNN | Q4 | 176 | – | 3888.8 ± 4.1 | – | 27.4 ± 0.2 | – |
-|  | CPU | llama.cpp | Q8_0 | 292 | – | 1105.3 ± 1.5 | 1.9e3 | 169.2 ± 0.1 | 2.1e4 |
-|  | CPU | MNN | Q8 | 310 | – | 1329.3 ± 288.5 | 1.7e3 | 101.3 ± 0.3 | 2.7e4 |
-|  | GPU | llama.cpp | Q8_0 | 292 | – | 1551.0 ± 1.8 | 1.6e3 | 84.6 ± 1.1 | 3.8e4 |
-|  | GPU | MNN | Q8 | 310 | – | 3614.5 ± 10.1 | 8.4e2 | 23.8 ± 0.0 | 5.2e4 |
-|  | CPU | llama.cpp | F16 | 543 | – | 282.4 ± 0.3 | 8.1e3 | 81.8 ± 0.1 | 4.5e4 |
-|  | CPU | MNN | F16 | 544 | – | 861.4 ± 253.8 | 2.4e3 | 67.9 ± 0.0 | 4.3e4 |
-|  | GPU | llama.cpp | F16 | 543 | – | 1887.6 ± 4.2 | 1.5e3 | 55.8 ± 0.7 | 5.3e4 |
+| Gemma-3-270M | CPU | llama.cpp | Q4_0 | 241 | 535 | 1090.2 ± 1.2 | 1.8e3 | 185.6 ± 0.8 | 1.6e4 |
+|  | CPU | MNN | Q4 | 176 | 285 | 1278.4 ± 302.1 | 1.4e3 | 116.0 ± 0.2 | 2.0e4 |
+|  | GPU | llama.cpp | Q4_0 | 241 | 1,538 (1,272 GPU) | 2874.9 ± 4.4 | 1.3e3 | 73.2 ± 2.8 | 3.6e4 |
+|  | GPU | MNN | Q4 | 176 | 391 (204 GPU) | 3888.8 ± 4.1 | 9.0e2 | 27.4 ± 0.2 | 4.4e4 |
+|  | CPU | llama.cpp | Q8_0 | 292 | 634 | 1105.3 ± 1.5 | 1.9e3 | 169.2 ± 0.1 | 2.1e4 |
+|  | CPU | MNN | Q8 | 310 | 694 | 1329.3 ± 288.5 | 1.7e3 | 101.3 ± 0.3 | 2.7e4 |
+|  | GPU | llama.cpp | Q8_0 | 292 | 1,591 (1,323 GPU) | 1551.0 ± 1.8 | 1.6e3 | 84.6 ± 1.1 | 3.8e4 |
+|  | GPU | MNN | Q8 | 310 | 524 (338 GPU) | 3614.5 ± 10.1 | 8.4e2 | 23.8 ± 0.0 | 5.2e4 |
+|  | CPU | llama.cpp | F16 | 543 | 602 | 282.4 ± 0.3 | 8.1e3 | 81.8 ± 0.1 | 4.5e4 |
+|  | CPU | MNN | F16 | 544 | 1,528 | 861.4 ± 253.8 | 2.4e3 | 67.9 ± 0.0 | 4.3e4 |
+|  | GPU | llama.cpp | F16 | 543 | 2,534 (1,574 GPU) | 1887.6 ± 4.2 | 1.5e3 | 55.8 ± 0.7 | 5.3e4 |
 |  | GPU | MNN | F16 | 544 | crashed | FAIL | FAIL | FAIL | FAIL |
-| SmolLM2-360M | CPU | llama.cpp | Q4_0 | 229 | – | 456.2 ± 2.7 | 4.0e3 | 124.5 ± 0.1 | 2.4e4 |
-|  | CPU | MNN | Q4 | 229 | – | 488.3 ± 132.8 | 3.4e3 | 114.6 ± 0.4 | 2.3e4 |
-|  | GPU | llama.cpp | Q4_0 | 229 | – | 1829.9 ± 0.5 | 2.5e3 | 85.6 ± 0.1 | 4.4e4 |
-|  | GPU | MNN | Q4 | 229 | – | 1653.0 ± 3.2 | 2.6e3 | 39.3 ± 0.2 | 5.4e4 |
-|  | CPU | llama.cpp | Q8_0 | 386 | – | 472.2 ± 0.4 | 4.3e3 | 98.4 ± 4.1 | 3.3e4 |
-|  | CPU | MNN | Q8 | 410 | – | 523.8 ± 143.4 | 3.9e3 | 99.6 ± 0.3 | 3.0e4 |
-|  | GPU | llama.cpp | Q8_0 | 386 | – | 678.7 ± 0.6 | 3.1e3 | 79.6 ± 0.0 | 5.3e4 |
-|  | GPU | MNN | Q8 | 410 | – | 1562.0 ± 2.9 | 2.4e3 | 37.0 ± 0.3 | 6.4e4 |
-|  | CPU | llama.cpp | F16 | 726 | – | 95.5 ± 0.1 | 2.5e4 | 50.3 ± 0.0 | 7.2e4 |
-|  | CPU | MNN | F16 | 727 | – | 326.2 ± 112.0 | 7.2e3 | 58.4 ± 0.1 | 5.8e4 |
-|  | GPU | llama.cpp | F16 | 726 | – | 901.2 ± 5.5 | 3.0e3 | 59.0 ± 0.1 | 7.2e4 |
+| SmolLM2-360M | CPU | llama.cpp | Q4_0 | 229 | 509 | 456.2 ± 2.7 | 4.0e3 | 124.5 ± 0.1 | 2.4e4 |
+|  | CPU | MNN | Q4 | 229 | 340 | 488.3 ± 132.8 | 3.4e3 | 114.6 ± 0.4 | 2.3e4 |
+|  | GPU | llama.cpp | Q4_0 | 229 | 1,009 (841 GPU) | 1829.9 ± 0.5 | 2.5e3 | 85.6 ± 0.1 | 4.4e4 |
+|  | GPU | MNN | Q4 | 229 | 444 (267 GPU) | 1653.0 ± 3.2 | 2.6e3 | 39.3 ± 0.2 | 5.4e4 |
+|  | CPU | llama.cpp | Q8_0 | 386 | 824 | 472.2 ± 0.4 | 4.3e3 | 98.4 ± 4.1 | 3.3e4 |
+|  | CPU | MNN | Q8 | 410 | 509 | 523.8 ± 143.4 | 3.9e3 | 99.6 ± 0.3 | 3.0e4 |
+|  | GPU | llama.cpp | Q8_0 | 386 | 1,326 (999 GPU) | 678.7 ± 0.6 | 3.1e3 | 79.6 ± 0.0 | 5.3e4 |
+|  | GPU | MNN | Q8 | 410 | 624 (449 GPU) | 1562.0 ± 2.9 | 2.4e3 | 37.0 ± 0.3 | 6.4e4 |
+|  | CPU | llama.cpp | F16 | 726 | 779 | 95.5 ± 0.1 | 2.5e4 | 50.3 ± 0.0 | 7.2e4 |
+|  | CPU | MNN | F16 | 727 | 1,035 | 326.2 ± 112.0 | 7.2e3 | 58.4 ± 0.1 | 5.8e4 |
+|  | GPU | llama.cpp | F16 | 726 | 2,225 (1,339 GPU) | 901.2 ± 5.5 | 3.0e3 | 59.0 ± 0.1 | 7.2e4 |
 |  | GPU | MNN | F16 | 727 | crashed | FAIL | FAIL | FAIL | FAIL |
-| Qwen3-0.6B | CPU | llama.cpp | Q4_0 | 469 | – | 309.4 ± 0.1 | 6.3e3 | 72.0 ± 0.1 | 4.7e4 |
-|  | CPU | MNN | Q4 | 378 | – | 398.1 ± 93.3 | 5.7e3 | 79.0 ± 0.6 | 3.7e4 |
-|  | GPU | llama.cpp | Q4_0 | 469 | – | 1679.6 ± 10.0 | 2.3e3 | 61.7 ± 0.0 | 7.0e4 |
-|  | GPU | MNN | Q4 | 378 | – | 1252.2 ± 10.2 | 3.1e3 | 32.0 ± 0.1 | 6.3e4 |
-|  | CPU | llama.cpp | Q8_0 | 805 | – | 60.0 ± 2.1 | 2.4e4 | 67.0 ± 0.0 | 5.5e4 |
-|  | CPU | MNN | Q8 | 676 | – | 423.6 ± 97.3 | 6.2e3 | 66.4 ± 0.1 | 5.2e4 |
-|  | GPU | llama.cpp | Q8_0 | 805 | – | 471.6 ± 2.1 | 4.7e3 | 57.6 ± 0.4 | 7.3e4 |
-|  | GPU | MNN | Q8 | 676 | – | 1177.5 ± 5.1 | 3.5e3 | 25.6 ± 0.0 | 9.0e4 |
-|  | CPU | llama.cpp | F16 | 1,509 | – | 67.2 ± 0.0 | 3.9e4 | 38.4 ± 0.0 | 1.2e5 |
-|  | CPU | MNN | F16 | 1,198 | – | 184.0 ± 0.2 | 1.0e4 | 37.3 ± 0.1 | 9.5e4 |
-|  | GPU | llama.cpp | F16 | 1,509 | – | 627.4 ± 0.1 | 4.5e3 | 41.2 ± 0.1 | 1.1e5 |
+| Qwen3-0.6B | CPU | llama.cpp | Q4_0 | 469 | 833 | 309.4 ± 0.1 | 6.3e3 | 72.0 ± 0.1 | 4.7e4 |
+|  | CPU | MNN | Q4 | 378 | 589 | 398.1 ± 93.3 | 5.7e3 | 79.0 ± 0.6 | 3.7e4 |
+|  | GPU | llama.cpp | Q4_0 | 469 | 1,552 (1,237 GPU) | 1679.6 ± 10.0 | 2.3e3 | 61.7 ± 0.0 | 7.0e4 |
+|  | GPU | MNN | Q4 | 378 | 707 (444 GPU) | 1252.2 ± 10.2 | 3.1e3 | 32.0 ± 0.1 | 6.3e4 |
+|  | CPU | llama.cpp | Q8_0 | 805 | 1,291 | 315.4 ± 0.2 | 7.0e3 | 67.8 | 5.6e4 |
+|  | CPU | MNN | Q8 | 676 | 1,029 (1 GPU) | 423.6 ± 97.3 | 6.2e3 | 66.4 ± 0.1 | 5.2e4 |
+|  | GPU | llama.cpp | Q8_0 | 805 | 2,017 (1,496 GPU) | 471.6 ± 2.1 | 4.7e3 | 57.6 ± 0.4 | 7.3e4 |
+|  | GPU | MNN | Q8 | 676 | 1,002 (741 GPU) | 1177.5 ± 5.1 | 3.5e3 | 25.6 ± 0.0 | 9.0e4 |
+|  | CPU | llama.cpp | F16 | 1,509 | 1,626 | 67.2 ± 0.0 | 3.9e4 | 38.4 ± 0.0 | 1.2e5 |
+|  | CPU | MNN | F16 | 1,198 | 2,081 | 184.0 ± 0.2 | 1.0e4 | 37.3 ± 0.1 | 9.5e4 |
+|  | GPU | llama.cpp | F16 | 1,509 | 4,464 (2,055 GPU) | 627.4 ± 0.1 | 4.5e3 | 41.2 ± 0.1 | 1.1e5 |
 |  | GPU | MNN | F16 | 1,198 | crashed | FAIL | FAIL | FAIL | FAIL |
-| Qwen3.5-0.8B | CPU | llama.cpp | Q4_0 | 513 | – | 306.9 ± 0.2 | 6.8e3 | 60.1 ± 0.0 | 6.0e4 |
-|  | CPU | MNN | Q4 | 440 | – | 336.7 ± 0.8 | 4.9e3 | 80.0 ± 0.8 | 3.6e4 |
-|  | GPU | llama.cpp | Q4_0 | 513 | – | 1120.3 ± 11.7 | 3.5e3 | 61.4 ± 0.3 | 6.0e4 |
-|  | GPU | MNN | Q4 | 440 | – | 1291.8 ± 7.1 | 3.0e3 | 75.9 ± 5.7 | 4.1e4 |
-|  | CPU | llama.cpp | Q8_0 | 834 | – | 316.0 ± 0.6 | 7.1e3 | 59.6 ± 0.1 | 6.8e4 |
-|  | CPU | MNN | Q8 | 816 | – | 356.2 ± 0.3 | 5.7e3 | 69.2 ± 0.1 | 5.1e4 |
-|  | GPU | llama.cpp | Q8_0 | 834 | – | 1041.2 ± 1.8 | 3.0e3 | 53.0 ± 1.1 | 8.9e4 |
-|  | GPU | MNN | Q8 | 816 | – | 982.2 ± 54.0 | 4.5e3 | 52.6 ± 3.9 | 7.4e4 |
-|  | CPU | llama.cpp | F16 | 1,558 | – | 61.0 ± 0.1 | 4.1e4 | 32.2 ± 0.0 | 1.5e5 |
-|  | CPU | MNN | F16 | 1,521 | – | 249.8 ± 2.7 | 9.9e3 | 34.5 ± 0.0 | 1.0e5 |
-|  | GPU | llama.cpp | F16 | 1,558 | – | 847.3 ± 7.9 | 3.6e3 | 35.0 ± 0.1 | 1.3e5 |
+| Qwen3.5-0.8B | CPU | llama.cpp | Q4_0 | 513 | 1,115 | 306.9 ± 0.2 | 6.8e3 | 60.1 ± 0.0 | 6.0e4 |
+|  | CPU | MNN | Q4 | 440 | 568 | 336.7 ± 0.8 | 4.9e3 | 80.0 ± 0.8 | 3.6e4 |
+|  | GPU | llama.cpp | Q4_0 | 513 | 1,883 (1,507 GPU) | 1120.3 ± 11.7 | 3.5e3 | 61.4 ± 0.3 | 6.0e4 |
+|  | GPU | MNN | Q4 | 440 | 733 (511 GPU) | 1291.8 ± 7.1 | 3.0e3 | 75.9 ± 5.7 | 4.1e4 |
+|  | CPU | llama.cpp | Q8_0 | 834 | 1,735 | 316.0 ± 0.6 | 7.1e3 | 59.6 ± 0.1 | 6.8e4 |
+|  | CPU | MNN | Q8 | 816 | 940 | 356.2 ± 0.3 | 5.7e3 | 69.2 ± 0.1 | 5.1e4 |
+|  | GPU | llama.cpp | Q8_0 | 834 | 2,273 (1,818 GPU) | 1041.2 ± 1.8 | 3.0e3 | 53.0 ± 1.1 | 8.9e4 |
+|  | GPU | MNN | Q8 | 816 | 1,108 (887 GPU) | 982.2 ± 54.0 | 4.5e3 | 52.6 ± 3.9 | 7.4e4 |
+|  | CPU | llama.cpp | F16 | 1,558 | 1,641 | 61.0 ± 0.1 | 4.1e4 | 32.2 ± 0.0 | 1.5e5 |
+|  | CPU | MNN | F16 | 1,521 | 3,068 | 249.8 ± 2.7 | 9.9e3 | 34.5 ± 0.0 | 1.0e5 |
+|  | GPU | llama.cpp | F16 | 1,558 | 4,685 (2,519 GPU) | 847.3 ± 7.9 | 3.6e3 | 35.0 ± 0.1 | 1.3e5 |
 |  | GPU | MNN | F16 | 1,521 | crashed | FAIL | FAIL | FAIL | FAIL |
-| Qwen3-1.7B | CPU | llama.cpp | Q4_0 | 1,229 | – | 144.1 ± 0.2 | 1.3e4 | 34.9 ± 0.0 | 1.2e5 |
-|  | CPU | MNN | Q4 | 1,081 | – | 102.8 ± 0.2 | 1.9e4 | 36.8 ± 0.1 | 8.6e4 |
-|  | GPU | llama.cpp | Q4_0 | 1,229 | – | 729.0 ± 5.5 | 8.2e3 | 31.4 ± 0.0 | 1.5e5 |
-|  | GPU | MNN | Q4 | 1,081 | – | 486.2 ± 1.7 | 9.6e3 | 25.6 ± 0.0 | 1.3e5 |
-|  | CPU | llama.cpp | Q8_0 | 2,165 | – | 150.2 ± 0.5 | 1.7e4 | 30.8 ± 0.0 | 1.4e5 |
-|  | CPU | MNN | Q8 | 1,942 | – | 135.7 ± 42.0 | 2.2e4 | 29.6 ± 0.0 | 1.5e5 |
-|  | GPU | llama.cpp | Q8_0 | 2,165 | – | 164.2 ± 0.3 | 1.7e4 | 28.1 ± 0.0 | 1.9e5 |
-|  | GPU | MNN | Q8 | 1,942 | – | 442.7 ± 1.6 | 1.1e4 | 22.8 ± 0.0 | 1.9e5 |
-|  | CPU | llama.cpp | F16 | 4,070 | – | 15.9 ± 0.0 | 1.3e5 | 15.9 ± 0.0 | 3.3e5 |
-|  | CPU | MNN | F16 | 3,447 | – | 79.4 ± 30.4 | 3.7e4 | 13.6 ± 0.1 | 2.5e5 |
-|  | GPU | llama.cpp | F16 | 4,070 | – | 225.0 ± 0.6 | 1.5e4 | 17.1 ± 0.0 | 2.8e5 |
+| Qwen3-1.7B | CPU | llama.cpp | Q4_0 | 1,229 | 2,140 | 144.1 ± 0.2 | 1.3e4 | 34.9 ± 0.0 | 1.2e5 |
+|  | CPU | MNN | Q4 | 1,081 | 1,286 | 102.8 ± 0.2 | 1.9e4 | 36.8 ± 0.1 | 8.6e4 |
+|  | GPU | llama.cpp | Q4_0 | 1,229 | 3,113 (1,913 GPU) | 729.0 ± 5.5 | 8.2e3 | 31.4 ± 0.0 | 1.5e5 |
+|  | GPU | MNN | Q4 | 1,081 | 1,443 (1,089 GPU) | 486.2 ± 1.7 | 9.6e3 | 25.6 ± 0.0 | 1.3e5 |
+|  | CPU | llama.cpp | Q8_0 | 2,165 | 3,520 | 150.2 ± 0.5 | 1.7e4 | 30.8 ± 0.0 | 1.4e5 |
+|  | CPU | MNN | Q8 | 1,942 | 2,716 | 135.7 ± 42.0 | 2.2e4 | 29.6 ± 0.0 | 1.5e5 |
+|  | GPU | llama.cpp | Q8_0 | 2,165 | 5,169 (2,694 GPU) | 164.2 ± 0.3 | 1.7e4 | 28.1 ± 0.0 | 1.9e5 |
+|  | GPU | MNN | Q8 | 1,942 | 2,479 (1,949 GPU) | 442.7 ± 1.6 | 1.1e4 | 22.8 ± 0.0 | 1.9e5 |
+|  | CPU | llama.cpp | F16 | 4,070 | 4,115 | 15.9 ± 0.0 | 1.3e5 | 15.9 ± 0.0 | 3.3e5 |
+|  | CPU | MNN | F16 | 3,447 | 5,220 | 79.4 ± 30.4 | 3.7e4 | 13.6 ± 0.1 | 2.5e5 |
+|  | GPU | llama.cpp | F16 | 4,070 | 11,362 (4,307 GPU) | 225.0 ± 0.6 | 1.5e4 | 17.1 ± 0.0 | 2.8e5 |
 |  | GPU | MNN | F16 | 3,447 | crashed | FAIL | FAIL | FAIL | FAIL |
-| Qwen3.5-2B | CPU | llama.cpp | Q4_0 | 1,237 | – | 150.5 ± 0.6 | 1.4e4 | 32.7 ± 0.0 | 1.4e5 |
-|  | CPU | MNN | Q4 | 1,076 | – | 157.8 ± 0.3 | 1.5e4 | 37.2 ± 0.1 | 9.6e4 |
-|  | GPU | llama.cpp | Q4_0 | 1,237 | – | 641.4 ± 3.1 | 8.8e3 | 38.1 ± 0.1 | 1.3e5 |
-|  | GPU | MNN | Q4 | 1,076 | – | 668.9 ± 39.3 | 5.3e3 | 43.2 ± 2.3 | 1.0e5 |
-|  | CPU | llama.cpp | Q8_0 | 2,077 | – | 159.1 ± 0.3 | 1.5e4 | 29.3 ± 0.1 | 1.5e5 |
-|  | CPU | MNN | Q8 | 2,016 | – | 168.7 ± 1.0 | 1.8e4 | 31.4 ± 0.0 | 1.4e5 |
-|  | GPU | llama.cpp | Q8_0 | 2,077 | – | 550.5 ± 2.1 | 8.5e3 | 27.6 ± 0.0 | 1.9e5 |
-|  | GPU | MNN | Q8 | 2,016 | – | 457.6 ± 18.9 | 8.7e3 | 26.0 ± 0.2 | 1.8e5 |
-|  | CPU | llama.cpp | F16 | 3,897 | – | 23.5 ± 0.0 | 1.1e5 | 14.7 ± 0.0 | 3.5e5 |
-|  | CPU | MNN | F16 | 3,780 | – | 113.2 ± 0.5 | 2.2e4 | 14.1 ± 0.0 | 2.8e5 |
-|  | GPU | llama.cpp | F16 | 3,897 | – | 436.9 ± 0.8 | 7.6e3 | 16.4 ± 0.0 | 3.0e5 |
+| Qwen3.5-2B | CPU | llama.cpp | Q4_0 | 1,237 | 2,523 | 150.5 ± 0.6 | 1.4e4 | 32.7 ± 0.0 | 1.4e5 |
+|  | CPU | MNN | Q4 | 1,076 | 1,512 | 157.8 ± 0.3 | 1.5e4 | 37.2 ± 0.1 | 9.6e4 |
+|  | GPU | llama.cpp | Q4_0 | 1,237 | 2,980 (2,220 GPU) | 641.4 ± 3.1 | 8.8e3 | 38.1 ± 0.1 | 1.3e5 |
+|  | GPU | MNN | Q4 | 1,076 | 1,470 (1,156 GPU) | 668.9 ± 39.3 | 5.3e3 | 43.2 ± 2.3 | 1.0e5 |
+|  | CPU | llama.cpp | Q8_0 | 2,077 | 4,142 | 159.1 ± 0.3 | 1.5e4 | 29.3 ± 0.1 | 1.5e5 |
+|  | CPU | MNN | Q8 | 2,016 | 2,206 | 168.7 ± 1.0 | 1.8e4 | 31.4 ± 0.0 | 1.4e5 |
+|  | GPU | llama.cpp | Q8_0 | 2,077 | 4,157 (3,037 GPU) | 550.5 ± 2.1 | 8.5e3 | 27.6 ± 0.0 | 1.9e5 |
+|  | GPU | MNN | Q8 | 2,016 | 2,810 (2,096 GPU) | 457.6 ± 18.9 | 8.7e3 | 26.0 ± 0.2 | 1.8e5 |
+|  | CPU | llama.cpp | F16 | 3,897 | 3,907 | 23.5 ± 0.0 | 1.1e5 | 14.7 ± 0.0 | 3.5e5 |
+|  | CPU | MNN | F16 | 3,780 | 6,475 | 113.2 ± 0.5 | 2.2e4 | 14.1 ± 0.0 | 2.8e5 |
+|  | GPU | llama.cpp | F16 | 3,897 | 10,039 (5,108 GPU) | 436.9 ± 0.8 | 7.6e3 | 16.4 ± 0.0 | 3.0e5 |
 |  | GPU | MNN | F16 | 3,780 | crashed | FAIL | FAIL | FAIL | FAIL |
-| Qwen3-4B | CPU | llama.cpp | Q4_0 | 2,370 | – | 56.4 ± 0.1 | 4.1e4 | 16.3 ± 0.3 | 2.7e5 |
-|  | CPU | MNN | Q4 | 2,521 | – | 41.0 ± 0.1 | 6.0e4 | 16.8 ± 0.1 | 2.0e5 |
-|  | GPU | llama.cpp | Q4_0 | 2,370 | – | 315.0 ± 0.1 | 1.9e4 | 16.7 ± 0.0 | 3.1e5 |
-|  | GPU | MNN | Q4 | 2,521 | – | 191.1 ± 0.3 | 3.2e4 | 19.7 ± 0.0 | 2.8e5 |
-|  | CPU | llama.cpp | Q8_0 | 4,280 | – | 58.8 ± 0.0 | 4.8e4 | 13.8 ± 0.0 | 3.3e5 |
+| Qwen3-4B | CPU | llama.cpp | Q4_0 | 2,370 | 4,561 (1 GPU) | 56.4 ± 0.1 | 4.1e4 | 16.3 ± 0.3 | 2.7e5 |
+|  | CPU | MNN | Q4 | 2,521 | 2,772 | 41.0 ± 0.1 | 6.0e4 | 16.8 ± 0.1 | 2.0e5 |
+|  | GPU | llama.cpp | Q4_0 | 2,370 | 5,647 (3,247 GPU) | 315.0 ± 0.1 | 1.9e4 | 16.7 ± 0.0 | 3.1e5 |
+|  | GPU | MNN | Q4 | 2,521 | 2,964 (2,429 GPU) | 191.1 ± 0.3 | 3.2e4 | 19.7 ± 0.0 | 2.8e5 |
+|  | CPU | llama.cpp | Q8_0 | 4,280 | 8,715 | 58.8 ± 0.0 | 4.8e4 | 13.8 ± 0.0 | 3.3e5 |
 |  | CPU | MNN | Q8 | 4,532 | does not fit | FAIL | FAIL | FAIL | FAIL |
-|  | GPU | llama.cpp | Q8_0 | 4,280 | – | 63.7 ± 0.1 | 4.5e4 | 12.7 ± 0.0 | 4.3e5 |
-|  | GPU | MNN | Q8 | 4,532 | – | 180.0 ± 0.3 | 3.4e4 | 12.6 ± 0.0 | 4.5e5 |
-|  | CPU | llama.cpp | F16 | 8,051 | – | 8.9 ± 0.0 | 3.0e5 | 6.9 ± 0.2 | 7.9e5 |
+|  | GPU | llama.cpp | Q8_0 | 4,280 | 9,544 (5,178 GPU) | 63.7 ± 0.1 | 4.5e4 | 12.7 ± 0.0 | 4.3e5 |
+|  | GPU | MNN | Q8 | 4,532 | 4,975 (4,440 GPU) | 180.0 ± 0.3 | 3.4e4 | 12.6 ± 0.0 | 4.5e5 |
+|  | CPU | llama.cpp | F16 | 8,051 | 8,212 | 8.9 ± 0.0 | 3.0e5 | 6.9 ± 0.2 | 7.9e5 |
 |  | CPU | MNN | F16 | 8,052 | does not fit | FAIL | FAIL | FAIL | FAIL |
-|  | GPU | llama.cpp | F16 | 8,051 | – | 88.2 ± 0.0 | 4.3e4 | 7.4 ± 0.0 | 6.7e5 |
+|  | GPU | llama.cpp | F16 | 8,051 | 18,196 (8,534 GPU) | 88.2 ± 0.0 | 4.3e4 | 7.4 ± 0.0 | 6.7e5 |
 |  | GPU | MNN | F16 | 8,052 | crashed | FAIL | FAIL | FAIL | FAIL |
-| Qwen3.5-4B | CPU | llama.cpp | Q4_0 | 2,612 | – | 25.3 ± 1.3 | 5.2e4 | 15.1 ± 0.6 | 2.9e5 |
-|  | CPU | MNN | Q4 | 2,389 | – | 62.5 ± 0.1 | 4.3e4 | 16.9 ± 0.1 | 1.8e5 |
-|  | GPU | llama.cpp | Q4_0 | 2,612 | – | 280.6 ± 0.2 | 2.1e4 | 14.5 ± 1.0 | 2.8e5 |
-|  | GPU | MNN | Q4 | 2,389 | – | 274.9 ± 5.1 | 1.5e4 | 21.7 ± 0.2 | 2.3e5 |
+| Qwen3.5-4B | CPU | llama.cpp | Q4_0 | 2,612 | 5,263 | 59.8 ± 0.1 | 3.9e4 | 15.9 | 3.0e5 |
+|  | CPU | MNN | Q4 | 2,389 | 2,609 | 62.5 ± 0.1 | 4.3e4 | 16.9 ± 0.1 | 1.8e5 |
+|  | GPU | llama.cpp | Q4_0 | 2,612 | 4,633 (3,614 GPU) | 280.6 ± 0.2 | 2.1e4 | 14.5 ± 1.0 | 2.8e5 |
+|  | GPU | MNN | Q4 | 2,389 | 3,040 (2,524 GPU) | 274.9 ± 5.1 | 1.5e4 | 21.7 ± 0.2 | 2.3e5 |
 |  | CPU | llama.cpp | Q8_0 | 4,611 | does not fit | FAIL | FAIL | FAIL | FAIL |
-|  | CPU | MNN | Q8 | 4,491 | – | 67.6 ± 0.1 | 6.9e4 | 14.2 ± 0.0 | 3.3e5 |
-|  | GPU | llama.cpp | Q8_0 | 4,611 | – | 240.1 ± 0.3 | 2.4e4 | 12.6 ± 0.0 | 4.1e5 |
-|  | GPU | MNN | Q8 | 4,491 | – | 203.8 ± 1.7 | 2.3e4 | 13.4 ± 0.0 | 4.2e5 |
+|  | CPU | MNN | Q8 | 4,491 | 5,355 | 67.6 ± 0.1 | 6.9e4 | 14.2 ± 0.0 | 3.3e5 |
+|  | GPU | llama.cpp | Q8_0 | 4,611 | 6,406 (5,565 GPU) | 240.1 ± 0.3 | 2.4e4 | 12.6 ± 0.0 | 4.1e5 |
+|  | GPU | MNN | Q8 | 4,491 | 5,586 (4,626 GPU) | 203.8 ± 1.7 | 2.3e4 | 13.4 ± 0.0 | 4.2e5 |
 
-`–` energy (6 rows): `smollm2-135m__Q4_0__llama.cpp__cpu` (no energy reading), `smollm2-135m__Q4__mnn__cpu` (no energy reading), `smollm2-135m__Q4_0__llama.cpp__gpu` (no energy reading), `smollm2-135m__Q4__mnn__gpu` (no energy reading), `gemma3-270m__Q4__mnn__cpu` (no energy reading), `gemma3-270m__Q4__mnn__gpu` (no energy reading).
+**Rerun after a slow-governor first run** (prefill far below the phone's other measurements, decode normal; the rerun replaces it): `qwen3-0.6b__Q8_0__llama.cpp__cpu` (rerun; first run 60.0 / 66.96 tokens/s (slow governor)), `qwen3.5-4b__Q4_0__llama.cpp__cpu__head` (rerun; first run 25.3 / 15.05 tokens/s (slow governor)).
 
 ### 3.3 OnePlus 8 Pro
 
-Snapdragon 865 (SM8250), Adreno 650, 12 GB (11.2 GiB usable), Android 13. 104 configurations: 79 measured (37 with energy, 77 with peak memory), 17 cannot run, 8 not run.
+Snapdragon 865 (SM8250), Adreno 650, 12 GB (11.2 GiB usable), Android 13. 104 configurations: 79 measured (74 with energy, 79 with peak memory), 17 cannot run, 8 not run.
 
 | Model | Backend | Framework | Quant. | Storage MB | Peak memory MB | Prefill t/s | Prefill µJ/token | Decode t/s | Decode µJ/token |
 |---|---|---|---|--:|--:|--:|--:|--:|--:|
@@ -346,94 +354,96 @@ Snapdragon 865 (SM8250), Adreno 650, 12 GB (11.2 GiB usable), Android 13. 104 co
 |  | CPU | MNN | Q8 | 310 | 395 | 926.1 ± 3.2 | 6.1e3 | 46.2 ± 0.4 | 1.3e5 |
 |  | GPU | llama.cpp | Q8_0 | 292 | 1,478 (0 GPU) | 11.0 ± 0.0 | 1.6e5 | 6.1 ± 0.0 | 2.2e5 |
 |  | GPU | MNN | Q8 | 310 | 430 (0 GPU) | 736.2 ± 3.8 | 3.1e3 | 8.3 ± 0.2 | 1.4e5 |
-|  | CPU | llama.cpp | F16 | 543 | 602 | 462.1 ± 7.8 | 1.8e4 | 32.5 ± 0.3 | 1.9e5 |
+|  | CPU | llama.cpp | F16 | 543 | 602 | 483.6 ± 0.4 | 1.8e4 | 42.8 ± 0.2 | 1.6e5 |
 |  | CPU | MNN | F16 | 544 | 1,435 | 755.2 ± 15.7 | 8.1e3 | 31.1 ± 0.6 | 2.0e5 |
 |  | GPU | llama.cpp | F16 | 543 | 1,886 (0 GPU) | 6.2 ± 0.0 | 2.9e5 | 6.3 ± 0.1 | 2.7e5 |
 |  | GPU | MNN | F16 | 544 | crashed | FAIL | FAIL | FAIL | FAIL |
 | SmolLM2-360M | CPU | llama.cpp | Q4_0 | 229 | 509 | 378.9 ± 0.3 | 1.5e4 | 71.7 ± 0.5 | 9.5e4 |
 |  | CPU | MNN | Q4 | 229 | 312 | 326.2 ± 0.6 | 1.5e4 | 67.6 ± 0.3 | 9.4e4 |
-|  | GPU | llama.cpp | Q4_0 | 229 | 901 (0 GPU) | 63.5 ± 0.1 | 8.1e3 | 9.1 ± 0.0 | 2.0e4 |
+|  | GPU | llama.cpp | Q4_0 | 229 | 901 (0 GPU) | 58.0 ± 0.2 | 3.0e4 | 9.0 ± 0.0 | 1.7e5 |
 |  | GPU | MNN | Q4 | 229 | 333 (0 GPU) | 298.6 ± 0.3 | 8.4e3 | 9.3 ± 0.1 | 1.3e5 |
 |  | CPU | llama.cpp | Q8_0 | 386 | 825 | 377.0 ± 0.1 | 1.8e4 | 51.2 ± 0.1 | 1.3e5 |
 |  | CPU | MNN | Q8 | 410 | 492 | 342.1 ± 2.3 | 1.6e4 | 44.6 ± 0.3 | 1.4e5 |
 |  | GPU | llama.cpp | Q8_0 | 386 | 1,216 (0 GPU) | 3.8 ± 0.0 | 4.9e5 | 6.2 ± 0.0 | 2.4e5 |
 |  | GPU | MNN | Q8 | 410 | 514 (0 GPU) | 298.4 ± 0.4 | 8.8e3 | 9.2 ± 0.1 | 1.6e5 |
-|  | CPU | llama.cpp | F16 | 726 | 779 | 121.3 ± 3.9 | 5.2e4 | 23.3 ± 0.5 | 2.7e5 |
-|  | CPU | MNN | F16 | 727 | 803 | 117.1 ± 1.7 | – | 14.6 ± 0.3 | – |
+|  | CPU | llama.cpp | F16 | 726 | 779 | 161.4 ± 0.1 | 5.1e4 | 30.3 ± 0.1 | 2.3e5 |
+|  | CPU | MNN | F16 | 727 | 803 | 280.3 ± 1.0 | 2.2e4 | 25.9 ± 0.2 | 2.4e5 |
 |  | GPU | llama.cpp | F16 | 726 | 1,389 (0 GPU) | 2.0 ± 0.0 | – | 6.3 ± 0.0 | – |
 |  | GPU | MNN | F16 | 727 | crashed | FAIL | FAIL | FAIL | FAIL |
-| Qwen3-0.6B | CPU | llama.cpp | Q4_0 | 469 | 833 | 256.7 ± 0.6 | 2.3e4 | 37.4 ± 0.3 | 1.7e5 |
+| Qwen3-0.6B | CPU | llama.cpp | Q4_0 | 469 | 833 | 260.8 ± 0.5 | 2.2e4 | 48.2 ± 1.0 | 1.6e5 |
 |  | CPU | MNN | Q4 | 378 | 537 | 227.4 ± 1.9 | 2.2e4 | 42.8 ± 0.5 | 1.4e5 |
 |  | GPU | llama.cpp | Q4_0 | 469 | 1,315 (0 GPU) | 35.1 ± 0.0 | 5.1e4 | 3.5 ± 0.0 | 3.5e5 |
 |  | GPU | MNN | Q4 | 378 | 546 (0 GPU) | 213.9 ± 0.3 | 1.2e4 | 9.2 ± 0.0 | 1.6e5 |
-|  | CPU | llama.cpp | Q8_0 | 805 | 1,440 | 148.2 ± 0.6 | – | 19.5 ± 0.6 | – |
+|  | CPU | llama.cpp | Q8_0 | 805 | 1,440 | 258.8 ± 0.5 | 2.5e4 | 30.3 ± 1.1 | 2.1e5 |
 |  | CPU | MNN | Q8 | 676 | 962 | 238.7 ± 0.7 | 2.4e4 | 27.8 ± 0.4 | 2.3e5 |
 |  | GPU | llama.cpp | Q8_0 | 805 | 1,908 (0 GPU) | 2.8 ± 0.0 | – | 4.3 ± 0.0 | – |
 |  | GPU | MNN | Q8 | 676 | 844 (1 GPU) | 213.1 ± 0.2 | 1.3e4 | 8.9 ± 0.0 | 2.2e5 |
-|  | CPU | llama.cpp | F16 | 1,509 | 1,626 | 75.5 ± 0.5 | – | 14.7 ± 0.8 | – |
-|  | CPU | MNN | F16 | 1,198 | 1,811 | 66.3 ± 19.1 | – | 8.8 ± 0.3 | – |
+|  | CPU | llama.cpp | F16 | 1,509 | 1,626 | 99.5 ± 5.2 | 7.3e4 | 18.3 ± 0.1 | 3.8e5 |
+|  | CPU | MNN | F16 | 1,198 | 1,811 | 168.3 ± 39.3 | 3.3e4 | 16.5 ± 0.4 | 3.8e5 |
 |  | GPU | llama.cpp | F16 | 1,509 | 2,344 (0 GPU) | 1.4 ± 0.0 | – | 4.5 ± 0.0 | – |
-|  | GPU | MNN | F16 | 1,198 | killed (out of memory) | FAIL | FAIL | FAIL | FAIL |
-| Qwen3.5-0.8B | CPU | llama.cpp | Q4_0 | 513 | 1,114 | 99.9 ± 1.8 | – | 25.3 ± 1.0 | – |
-|  | CPU | MNN | Q4 | 440 | 550 | 105.9 ± 3.9 | – | 20.2 ± 0.0 | – |
+|  | GPU | MNN | F16 | 1,198 | crashed | FAIL | FAIL | FAIL | FAIL |
+| Qwen3.5-0.8B | CPU | llama.cpp | Q4_0 | 513 | 1,114 | 206.6 ± 0.4 | 2.9e4 | 34.8 ± 0.4 | 2.1e5 |
+|  | CPU | MNN | Q4 | 440 | 550 | 166.6 ± 16.1 | 2.8e4 | 45.9 ± 0.3 | 1.4e5 |
 |  | GPU | llama.cpp | Q4_0 | 513 | not run (no OpenCL build) | not run | not run | not run | not run |
-|  | GPU | MNN | Q4 | 440 | 583 (0 GPU) | 206.0 ± 0.6 | – | 23.5 ± 0.0 | – |
-|  | CPU | llama.cpp | Q8_0 | 834 | 1,735 | 113.3 ± 0.8 | – | 15.4 ± 0.7 | – |
-|  | CPU | MNN | Q8 | 816 | 926 | 106.0 ± 1.4 | – | 15.2 ± 0.0 | – |
+|  | GPU | MNN | Q4 | 440 | 583 (0 GPU) | 207.2 ± 0.5 | 9.8e3 | 24.1 ± 0.0 | 1.2e5 |
+|  | CPU | llama.cpp | Q8_0 | 834 | 1,735 | 204.3 ± 0.6 | 3.4e4 | 23.1 ± 0.3 | 2.9e5 |
+|  | CPU | MNN | Q8 | 816 | 926 | 182.2 ± 2.1 | 3.0e4 | 26.0 ± 0.6 | 2.4e5 |
 |  | GPU | llama.cpp | Q8_0 | 834 | not run (no OpenCL build) | not run | not run | not run | not run |
-|  | GPU | MNN | Q8 | 816 | 959 (0 GPU) | 180.6 ± 0.0 | – | 17.6 ± 0.1 | – |
-|  | CPU | llama.cpp | F16 | 1,558 | 1,642 | 60.7 ± 0.9 | – | 12.8 ± 0.1 | – |
-|  | CPU | MNN | F16 | 1,521 | 2,906 | 79.8 ± 0.2 | – | 9.0 ± 0.1 | – |
+|  | GPU | MNN | Q8 | 816 | 959 (0 GPU) | 181.7 ± 0.4 | 1.4e4 | 17.9 ± 0.0 | 2.0e5 |
+|  | CPU | llama.cpp | F16 | 1,558 | 1,642 | 80.2 ± 5.9 | 8.5e4 | 14.2 ± 0.1 | 4.9e5 |
+|  | CPU | MNN | F16 | 1,521 | 2,906 | 152.7 ± 0.3 | 3.8e4 | 14.4 ± 0.1 | 4.4e5 |
 |  | GPU | llama.cpp | F16 | 1,558 | not run (no OpenCL build) | not run | not run | not run | not run |
 |  | GPU | MNN | F16 | 1,521 | crashed | FAIL | FAIL | FAIL | FAIL |
-| Qwen3-1.7B | CPU | llama.cpp | Q4_0 | 1,229 | 2,140 | 106.2 ± 0.1 | – | 21.8 ± 0.0 | – |
-|  | CPU | MNN | Q4 | 1,081 | 1,270 | 81.7 ± 0.1 | – | 19.7 ± 0.1 | – |
-|  | GPU | llama.cpp | Q4_0 | 1,229 | 2,753 (0 GPU) | 27.0 ± 0.0 | – | 2.5 ± 0.0 | – |
-|  | GPU | MNN | Q4 | 1,081 | 1,211 (0 GPU) | 77.0 ± 0.0 | – | 8.8 ± 0.1 | – |
-|  | CPU | llama.cpp | Q8_0 | 2,165 | 3,678 | 50.6 ± 8.4 | – | 9.2 ± 0.2 | – |
-|  | CPU | MNN | Q8 | 1,942 | 2,416 | 41.3 ± 11.9 | – | 5.3 ± 0.1 | – |
+| Qwen3-1.7B | CPU | llama.cpp | Q4_0 | 1,229 | 2,140 | 99.3 ± 12.0 | 5.5e4 | 21.1 ± 0.7 | 3.6e5 |
+|  | CPU | MNN | Q4 | 1,081 | 1,270 | 81.8 ± 0.0 | 6.9e4 | 19.1 ± 0.5 | 3.5e5 |
+|  | GPU | llama.cpp | Q4_0 | 1,229 | 2,753 (0 GPU) | 28.9 ± 0.1 | 7.1e4 | 2.6 ± 0.0 | 5.8e5 |
+|  | GPU | MNN | Q4 | 1,081 | 1,211 (0 GPU) | 77.3 ± 0.0 | 3.7e4 | 9.1 ± 0.0 | 3.2e5 |
+|  | CPU | llama.cpp | Q8_0 | 2,165 | 3,678 | 96.8 ± 1.7 | 7.5e4 | 12.0 ± 0.2 | 5.6e5 |
+|  | CPU | MNN | Q8 | 1,942 | 2,416 | 83.2 ± 5.5 | 7.5e4 | 10.9 ± 0.0 | 5.9e5 |
 |  | GPU | llama.cpp | Q8_0 | 2,165 | 4,474 (0 GPU) | 0.9 ± 0.0 | – | 3.2 ± 0.0 | – |
-|  | GPU | MNN | Q8 | 1,942 | 2,072 (0 GPU) | 75.3 ± 0.1 | – | 8.0 ± 0.0 | – |
-|  | CPU | llama.cpp | F16 | 4,070 | 4,196 | 18.9 ± 0.9 | – | 6.3 ± 0.0 | – |
+|  | GPU | MNN | Q8 | 1,942 | 2,072 (0 GPU) | 73.8 ± 2.8 | 4.5e4 | 8.4 ± 0.1 | 5.0e5 |
+|  | CPU | llama.cpp | F16 | 4,070 | 4,196 | 27.4 ± 0.5 | 2.3e5 | 6.9 ± 0.1 | 9.9e5 |
 |  | CPU | MNN | F16 | 3,447 | does not fit | FAIL | FAIL | FAIL | FAIL |
 |  | GPU | llama.cpp | F16 | 4,070 | 4,908 (0 GPU) | 0.5 ± 0.0 | – | 3.1 ± 0.0 | – |
 |  | GPU | MNN | F16 | 3,447 | crashed | FAIL | FAIL | FAIL | FAIL |
-| Qwen3.5-2B | CPU | llama.cpp | Q4_0 | 1,237 | 2,523 | 63.1 ± 0.8 | – | 12.1 ± 0.5 | – |
-|  | CPU | MNN | Q4 | 1,076 | 1,218 | 54.5 ± 0.4 | – | 9.1 ± 0.1 | – |
+| Qwen3.5-2B | CPU | llama.cpp | Q4_0 | 1,237 | 2,523 | 98.8 ± 2.2 | 5.8e4 | 17.4 ± 0.5 | 4.1e5 |
+|  | CPU | MNN | Q4 | 1,076 | 1,218 | 77.9 ± 0.2 | 6.1e4 | 20.7 ± 0.3 | 3.2e5 |
 |  | GPU | llama.cpp | Q4_0 | 1,237 | not run (no OpenCL build) | not run | not run | not run | not run |
-|  | GPU | MNN | Q4 | 1,076 | 1,259 (0 GPU) | 101.0 ± 0.4 | – | 14.2 ± 0.1 | – |
-|  | CPU | llama.cpp | Q8_0 | 2,077 | 4,141 | 56.6 ± 6.4 | – | 8.1 ± 0.1 | – |
-|  | CPU | MNN | Q8 | 2,016 | 2,974 | 56.1 ± 0.0 | – | 6.2 ± 0.1 | – |
+|  | GPU | MNN | Q4 | 1,076 | 1,259 (0 GPU) | 101.9 ± 0.1 | 2.2e4 | 14.2 ± 0.0 | 2.7e5 |
+|  | CPU | llama.cpp | Q8_0 | 2,077 | 4,141 | 94.0 ± 1.0 | 7.7e4 | 10.6 ± 0.0 | 6.3e5 |
+|  | CPU | MNN | Q8 | 2,016 | 2,974 | 81.6 ± 0.2 | 6.6e4 | 11.2 ± 0.2 | 5.7e5 |
 |  | GPU | llama.cpp | Q8_0 | 2,077 | not run (no OpenCL build) | not run | not run | not run | not run |
-|  | GPU | MNN | Q8 | 2,016 | 2,221 (31 GPU) | 83.5 ± 0.3 | – | 9.4 ± 0.0 | – |
-|  | CPU | llama.cpp | F16 | 3,897 | 3,908 | 24.6 ± 1.1 | – | 5.7 ± 0.1 | – |
+|  | GPU | MNN | Q8 | 2,016 | 2,221 (31 GPU) | 83.7 ± 0.3 | 3.2e4 | 9.3 ± 0.0 | 4.6e5 |
+|  | CPU | llama.cpp | F16 | 3,897 | 3,908 | 28.2 ± 0.3 | 2.3e5 | 6.1 ± 0.1 | 1.1e6 |
 |  | CPU | MNN | F16 | 3,780 | does not fit | FAIL | FAIL | FAIL | FAIL |
 |  | GPU | llama.cpp | F16 | 3,897 | not run (no OpenCL build) | not run | not run | not run | not run |
 |  | GPU | MNN | F16 | 3,780 | crashed | FAIL | FAIL | FAIL | FAIL |
-| Qwen3-4B | CPU | llama.cpp | Q4_0 | 2,370 | 4,559 | 41.4 ± 0.2 | – | 9.9 ± 0.0 | – |
-|  | CPU | MNN | Q4 | 2,521 | 2,868 | 32.6 ± 0.1 | – | 8.9 ± 0.0 | – |
-|  | GPU | llama.cpp | Q4_0 | 2,370 | 5,216 (0 GPU) | 11.7 ± 0.0 | – | 1.7 ± 0.0 | – |
-|  | GPU | MNN | Q4 | 2,521 | 2,580 (289 GPU) | 30.9 ± 0.0 | – | 6.3 ± 0.0 | – |
+| Qwen3-4B | CPU | llama.cpp | Q4_0 | 2,370 | 4,560 | 41.1 ± 0.6 | 1.4e5 | 8.9 ± 0.1 | 7.5e5 |
+|  | CPU | MNN | Q4 | 2,521 | 2,755 | 32.1 ± 1.0 | 1.8e5 | 8.7 ± 0.0 | 7.9e5 |
+|  | GPU | llama.cpp | Q4_0 | 2,370 | 5,216 (0 GPU) | 10.9 ± 0.0 | 2.0e5 | 1.7 ± 0.0 | 1.2e6 |
+|  | GPU | MNN | Q4 | 2,521 | 2,580 (289 GPU) | 31.1 ± 0.0 | 1.0e5 | 6.3 ± 0.0 | 6.9e5 |
 |  | CPU | llama.cpp | Q8_0 | 4,280 | does not fit | FAIL | FAIL | FAIL | FAIL |
-|  | CPU | MNN | Q8 | 4,532 | > RAM (swapped) | 12.6 ± 2.7 | – | 2.1 ± 0.1 | – |
+|  | CPU | MNN | Q8 | 4,532 | 5,065 | 31.0 ± 1.1 | 1.9e5 | 4.8 ± 0.0 | 1.3e6 |
 |  | GPU | llama.cpp | Q8_0 | 4,280 | load failed | FAIL | FAIL | FAIL | FAIL |
-|  | GPU | MNN | Q8 | 4,532 | 4,179 (0 GPU) | 26.4 ± 0.0 | – | 0.7 ± 0.0 | – |
+|  | GPU | MNN | Q8 | 4,532 | 4,179 (0 GPU) | 26.4 ± 0.1 | 1.0e5 | 0.7 ± 0.0 | 2.1e6 |
 |  | CPU | llama.cpp | F16 | 8,051 | does not fit | FAIL | FAIL | FAIL | FAIL |
 |  | CPU | MNN | F16 | 8,052 | does not fit | FAIL | FAIL | FAIL | FAIL |
 |  | GPU | llama.cpp | F16 | 8,051 | does not fit | FAIL | FAIL | FAIL | FAIL |
 |  | GPU | MNN | F16 | 8,052 | does not fit | FAIL | FAIL | FAIL | FAIL |
-| Qwen3.5-4B | CPU | llama.cpp | Q4_0 | 2,612 | > RAM (swapped) | 23.9 ± 1.7 | – | 5.3 ± 0.1 | – |
-|  | CPU | MNN | Q4 | 2,389 | 2,948 | 22.1 ± 0.1 | – | 3.7 ± 0.0 | – |
+| Qwen3.5-4B | CPU | llama.cpp | Q4_0 | 2,612 | 5,264 | 39.8 ± 0.1 | 1.5e5 | 8.0 ± 0.2 | 8.5e5 |
+|  | CPU | MNN | Q4 | 2,389 | 2,875 | 29.6 ± 1.2 | 1.5e5 | 9.2 ± 0.0 | 7.2e5 |
 |  | GPU | llama.cpp | Q4_0 | 2,612 | not run (no OpenCL build) | not run | not run | not run | not run |
-|  | GPU | MNN | Q4 | 2,389 | 2,655 (0 GPU) | 39.9 ± 0.0 | – | 7.1 ± 0.0 | – |
+|  | GPU | MNN | Q4 | 2,389 | 2,655 (0 GPU) | 39.5 ± 0.8 | 6.1e4 | 7.1 ± 0.0 | 6.3e5 |
 |  | CPU | llama.cpp | Q8_0 | 4,611 | does not fit | FAIL | FAIL | FAIL | FAIL |
 |  | CPU | MNN | Q8 | 4,491 | does not fit | FAIL | FAIL | FAIL | FAIL |
 |  | GPU | llama.cpp | Q8_0 | 4,611 | not run (no OpenCL build) | not run | not run | not run | not run |
-|  | GPU | MNN | Q8 | 4,491 | 5,968 (0 GPU) | 33.1 ± 0.0 | – | 4.0 ± 0.0 | – |
+|  | GPU | MNN | Q8 | 4,491 | 5,968 (0 GPU) | 32.7 ± 0.6 | 8.4e4 | 4.0 ± 0.0 | 1.1e6 |
 
-`–` energy (42 rows): `smollm2-360m__F16__mnn__cpu` (no energy reading), `smollm2-360m__F16__llama.cpp__gpu` (no energy reading), `qwen3-0.6b__Q8_0__llama.cpp__cpu` (no energy reading), `qwen3-0.6b__Q8_0__llama.cpp__gpu` (no energy reading), `qwen3-0.6b__F16__llama.cpp__cpu` (no energy reading), `qwen3-0.6b__F16__mnn__cpu` (no energy reading), `qwen3-0.6b__F16__llama.cpp__gpu` (no energy reading), `qwen3.5-0.8b__Q4_0__llama.cpp__cpu__head` (no energy reading), `qwen3.5-0.8b__Q4__mnn__cpu__head` (no energy reading), `qwen3.5-0.8b__Q4__mnn__gpu__head` (no energy reading), `qwen3.5-0.8b__Q8_0__llama.cpp__cpu__head` (no energy reading), `qwen3.5-0.8b__Q8__mnn__cpu__head` (no energy reading), `qwen3.5-0.8b__Q8__mnn__gpu__head` (no energy reading), `qwen3.5-0.8b__F16__llama.cpp__cpu__head` (no energy reading), `qwen3.5-0.8b__F16__mnn__cpu__head` (no energy reading), `qwen3-1.7b__Q4_0__llama.cpp__cpu` (no energy reading), `qwen3-1.7b__Q4__mnn__cpu` (no energy reading), `qwen3-1.7b__Q4_0__llama.cpp__gpu` (no energy reading), `qwen3-1.7b__Q4__mnn__gpu` (no energy reading), `qwen3-1.7b__Q8_0__llama.cpp__cpu` (no energy reading), `qwen3-1.7b__Q8__mnn__cpu` (no energy reading), `qwen3-1.7b__Q8_0__llama.cpp__gpu` (no energy reading), `qwen3-1.7b__Q8__mnn__gpu` (no energy reading), `qwen3-1.7b__F16__llama.cpp__cpu` (no energy reading), `qwen3-1.7b__F16__llama.cpp__gpu` (no energy reading), `qwen3.5-2b__Q4_0__llama.cpp__cpu__head` (no energy reading), `qwen3.5-2b__Q4__mnn__cpu__head` (no energy reading), `qwen3.5-2b__Q4__mnn__gpu__head` (no energy reading), `qwen3.5-2b__Q8_0__llama.cpp__cpu__head` (no energy reading), `qwen3.5-2b__Q8__mnn__cpu__head` (no energy reading), `qwen3.5-2b__Q8__mnn__gpu__head` (no energy reading), `qwen3.5-2b__F16__llama.cpp__cpu__head` (no energy reading), `qwen3-4b-instruct-2507__Q4_0__llama.cpp__cpu` (no energy reading), `qwen3-4b-instruct-2507__Q4__mnn__cpu` (no energy reading), `qwen3-4b-instruct-2507__Q4_0__llama.cpp__gpu` (no energy reading), `qwen3-4b-instruct-2507__Q4__mnn__gpu` (no energy reading), `qwen3-4b-instruct-2507__Q8__mnn__cpu` (no energy reading), `qwen3-4b-instruct-2507__Q8__mnn__gpu` (no energy reading), `qwen3.5-4b__Q4_0__llama.cpp__cpu__head` (no energy reading), `qwen3.5-4b__Q4__mnn__cpu__head` (no energy reading), `qwen3.5-4b__Q4__mnn__gpu__head` (no energy reading), `qwen3.5-4b__Q8__mnn__gpu__head` (no energy reading).
+`–` energy (5 rows): `smollm2-360m__F16__llama.cpp__gpu` (no energy reading), `qwen3-0.6b__Q8_0__llama.cpp__gpu` (no energy reading), `qwen3-0.6b__F16__llama.cpp__gpu` (no energy reading), `qwen3-1.7b__Q8_0__llama.cpp__gpu` (no energy reading), `qwen3-1.7b__F16__llama.cpp__gpu` (no energy reading).
 
-**Throughput differs by more than 10% from the first (screen-on, energy-less) OnePlus 8 Pro runs** in 14 rows (rerun ÷ first run, prefill / decode): `smollm2-135m__Q8_0__llama.cpp__cpu` (1.89× / 1.47×, rerun 10-20 03:31), `smollm2-135m__Q8__mnn__cpu` (1.90× / 1.84×, rerun 10-20 04:31), `smollm2-135m__F16__llama.cpp__cpu` (1.63× / 1.80×, rerun 10-20 06:33), `smollm2-135m__F16__mnn__cpu` (2.53× / 1.88×, rerun 10-20 08:16), `gemma3-270m__Q8_0__llama.cpp__cpu` (1.95× / 1.52×, rerun 10-20 08:21), `gemma3-270m__Q8__mnn__cpu` (2.35× / 1.69×, rerun 10-20 09:04), `gemma3-270m__F16__llama.cpp__cpu` (1.55× / 0.95×, rerun 10-21 16:57), `gemma3-270m__F16__mnn__cpu` (2.32× / 1.68×, rerun 10-21 06:13), `gemma3-270m__F16__llama.cpp__gpu` (1.11× / 0.94×, rerun 10-21 05:32), `smollm2-360m__Q8_0__llama.cpp__cpu` (1.76× / 1.58×, rerun 10-21 03:30), `smollm2-360m__Q8__mnn__cpu` (2.24× / 1.80×, rerun 10-21 04:44), `smollm2-360m__F16__llama.cpp__cpu` (1.14× / 1.29×, rerun 10-21 17:06), `qwen3-0.6b__Q4_0__llama.cpp__cpu` (0.98× / 0.79×, rerun 10-21 16:54), `qwen3-0.6b__Q8__mnn__cpu` (2.32× / 1.79×, rerun 10-21 06:26). Q4 rows reproduce within 5%; most differences are 8-bit and 16-bit CPU rows, 1.5–2.5× faster in the rerun. Cause (tested 2026-10-20): the moment the OnePlus 8 Pro falls asleep it caps policy4 at 1.48 of 2.42 GHz, and the same benchmark (SmolLM2-135M Q8_0 CPU prefill) runs at 124–228 tokens/s asleep against 907–921 awake. OxygenOS sleeps after 30 min whatever the screen timeout says, and the harness checked the caps only at the start and end of each run, so runs that fell asleep midway were slowed without a flag. The faster rerun values are the uncapped ones (they also match the S23, where Q8_0 CPU is about as fast as Q4_0); the first runs' 8/16-bit CPU values were partly capped. The harness now keeps the phone awake (checked every 2 s) and records the lowest cap during every run; rows measured before that fix with only a once-a-minute wake (2026-10-20 12:39–19:00) are being rerun.
+**Energy not measurable (5 llama.cpp GPU rows):** `qwen3-0.6b__F16__llama.cpp__gpu`, `qwen3-0.6b__Q8_0__llama.cpp__gpu`, `qwen3-1.7b__F16__llama.cpp__gpu`, `qwen3-1.7b__Q8_0__llama.cpp__gpu`, `smollm2-360m__F16__llama.cpp__gpu`. Their throughput above comes from the first (screen-on) runs. The energy runs abort inside the Adreno 650 OpenCL driver (`cl_a6x_cmdbuf_mgr_submit_ibs`, exit 134) minutes into the first prefill. These rows prefill at 0.5–3 tokens/s, so one GPU call runs for minutes; a driver hang watchdog is the likely cause (not confirmed). The same kind of row kernel-panicked the phone three times with the display panel off.
+
+**Throughput differs by more than 10% from the first (screen-on, energy-less) OnePlus 8 Pro runs** in 34 rows (rerun ÷ first run, prefill / decode): `smollm2-135m__Q8_0__llama.cpp__cpu` (1.89× / 1.47×, rerun 10-20 03:31), `smollm2-135m__Q8__mnn__cpu` (1.90× / 1.84×, rerun 10-20 04:31), `smollm2-135m__F16__llama.cpp__cpu` (1.63× / 1.80×, rerun 10-20 06:33), `smollm2-135m__F16__mnn__cpu` (2.53× / 1.88×, rerun 10-20 08:16), `gemma3-270m__Q8_0__llama.cpp__cpu` (1.95× / 1.52×, rerun 10-20 08:21), `gemma3-270m__Q8__mnn__cpu` (2.35× / 1.69×, rerun 10-20 09:04), `gemma3-270m__F16__llama.cpp__cpu` (1.62× / 1.26×, rerun 10-23 14:02), `gemma3-270m__F16__mnn__cpu` (2.32× / 1.68×, rerun 10-21 06:13), `gemma3-270m__F16__llama.cpp__gpu` (1.11× / 0.94×, rerun 10-21 05:32), `smollm2-360m__Q8_0__llama.cpp__cpu` (1.76× / 1.58×, rerun 10-21 03:30), `smollm2-360m__Q8__mnn__cpu` (2.24× / 1.80×, rerun 10-21 04:44), `smollm2-360m__F16__llama.cpp__cpu` (1.52× / 1.68×, rerun 10-22 14:37), `smollm2-360m__F16__mnn__cpu` (2.39× / 1.78×, rerun 10-22 03:18), `qwen3-0.6b__Q8_0__llama.cpp__cpu` (1.75× / 1.55×, rerun 10-22 03:52), `qwen3-0.6b__Q8__mnn__cpu` (2.32× / 1.79×, rerun 10-21 06:26), `qwen3-0.6b__F16__llama.cpp__cpu` (1.32× / 1.24×, rerun 10-22 16:28), `qwen3-0.6b__F16__mnn__cpu` (2.54× / 1.87×, rerun 10-22 04:21), `qwen3.5-0.8b__Q4_0__llama.cpp__cpu__head` (2.07× / 1.38×, rerun 10-22 18:20), `qwen3.5-0.8b__Q4__mnn__cpu__head` (1.57× / 2.27×, rerun 10-22 17:02), `qwen3.5-0.8b__Q8_0__llama.cpp__cpu__head` (1.80× / 1.49×, rerun 10-22 18:23), `qwen3.5-0.8b__Q8__mnn__cpu__head` (1.72× / 1.71×, rerun 10-22 17:09), `qwen3.5-0.8b__F16__llama.cpp__cpu__head` (1.32× / 1.11×, rerun 10-26 06:14), `qwen3.5-0.8b__F16__mnn__cpu__head` (1.91× / 1.60×, rerun 10-22 17:26), `qwen3-1.7b__Q8_0__llama.cpp__cpu` (1.91× / 1.31×, rerun 10-22 05:40), `qwen3-1.7b__Q8__mnn__cpu` (2.02× / 2.07×, rerun 10-22 05:16), `qwen3-1.7b__F16__llama.cpp__cpu` (1.45× / 1.10×, rerun 10-22 16:39), `qwen3.5-2b__Q4_0__llama.cpp__cpu__head` (1.57× / 1.44×, rerun 10-26 05:30), `qwen3.5-2b__Q4__mnn__cpu__head` (1.43× / 2.28×, rerun 10-22 17:18), `qwen3.5-2b__Q8_0__llama.cpp__cpu__head` (1.66× / 1.31×, rerun 10-26 05:47), `qwen3.5-2b__Q8__mnn__cpu__head` (1.45× / 1.79×, rerun 10-22 17:34), `qwen3.5-2b__F16__llama.cpp__cpu__head` (1.15× / 1.07×, rerun 10-26 05:12), `qwen3-4b-instruct-2507__Q8__mnn__cpu` (2.46× / 2.27×, rerun 10-26 04:11), `qwen3.5-4b__Q4_0__llama.cpp__cpu__head` (1.66× / 1.50×, rerun 10-26 04:33), `qwen3.5-4b__Q4__mnn__cpu__head` (1.34× / 2.49×, rerun 10-22 17:47). Q4 rows reproduce within 5%; most differences are 8-bit and 16-bit CPU rows, 1.5–2.5× faster in the rerun. Cause (tested 2026-10-20): the moment the OnePlus 8 Pro falls asleep it caps policy4 at 1.48 of 2.42 GHz, and the same benchmark (SmolLM2-135M Q8_0 CPU prefill) runs at 124–228 tokens/s asleep against 907–921 awake. OxygenOS sleeps after 30 min whatever the screen timeout says, and the harness checked the caps only at the start and end of each run, so runs that fell asleep midway were slowed without a flag. The faster rerun values are the uncapped ones (they also match the S23, where Q8_0 CPU is about as fast as Q4_0); the first runs' 8/16-bit CPU values were partly capped. The harness now keeps the phone awake (checked every 2 s) and records the lowest cap during every run; rows measured before that fix with only a once-a-minute wake (2026-10-20 12:39–19:00) are being rerun.
 
 Prefill slower than decode (8 llama.cpp GPU rows): `smollm2-135m__F16__llama.cpp__gpu`, `gemma3-270m__F16__llama.cpp__gpu`, `smollm2-360m__Q8_0__llama.cpp__gpu`, `smollm2-360m__F16__llama.cpp__gpu`, `qwen3-0.6b__Q8_0__llama.cpp__gpu`, `qwen3-0.6b__F16__llama.cpp__gpu`, `qwen3-1.7b__Q8_0__llama.cpp__gpu`, `qwen3-1.7b__F16__llama.cpp__gpu`. A slow OpenCL prefill path of that llama.cpp build for these weight types on this GPU (section 5).
 
@@ -512,14 +522,14 @@ Helio G25 (MT6762), 8x Cortex-A53, no OpenCL, 4 GB (3.7 GiB usable), 32-bit Andr
 
 | Backend | Framework | S23 prefill | S23 decode | OP15 prefill | OP15 decode | OP8P prefill | OP8P decode | R9A prefill | R9A decode |
 |---|---|--:|--:|--:|--:|--:|--:|--:|--:|
-| CPU | llama.cpp | 6.3 (4.6–7.1) | 8.2 (6.2–9.5) | 2.2 (1.3–2.8) | 4.1 (2.9–5.4) | 6.3 (5.7–8.3) | 6.8 (6.2–7.1) | 0.9 (0.7–1.4) | 1.0 (0.8–1.5) |
-| CPU | MNN | 6.3 (5.7–7.5) | 8.9 (8.0–10.1) | 2.3 (1.7–4.6) | 3.4 (2.2–4.6) | 5.3 (4.8–6.1) | 6.2 (5.8–6.6) | 1.0 (0.9–1.2) | 1.3 (1.0–1.6) |
-| GPU | llama.cpp | 3.5 (3.0–4.4) | 4.7 (2.8–6.9) | 3.3 (2.1–6.0) | 4.5 (2.6–5.4) | 1.8 (0.5–1.8) | 1.3 (0.2–1.7) | – | – |
-| GPU | MNN | 3.9 (3.1–6.1) | 2.1 (0.9–8.6) | 4.1 (3.0–6.0) | 3.6 (1.2–5.7) | 2.4 (2.2–2.8) | 1.2 (0.9–2.0) | – | – |
+| CPU | llama.cpp | 6.3 (4.6–7.1) | 8.2 (6.2–9.5) | 2.3 (1.3–2.8) | 4.1 (2.9–5.4) | 6.4 (5.5–8.6) | 6.8 (6.4–7.6) | 0.9 (0.7–1.4) | 1.0 (0.8–1.5) |
+| CPU | MNN | 6.3 (5.7–7.5) | 8.9 (8.0–10.1) | 2.3 (1.2–4.6) | 3.3 (2.0–4.6) | 5.5 (4.4–6.3) | 6.3 (5.8–6.8) | 1.0 (0.9–1.2) | 1.3 (1.0–1.6) |
+| GPU | llama.cpp | 3.5 (3.0–4.4) | 4.7 (2.8–6.9) | 3.3 (2.1–6.0) | 4.4 (2.6–5.4) | 1.8 (1.6–2.2) | 1.5 (1.2–1.9) | – | – |
+| GPU | MNN | 3.9 (3.1–6.1) | 2.1 (0.9–8.6) | 4.0 (3.0–6.0) | 3.2 (1.2–5.7) | 2.5 (2.0–3.3) | 2.4 (0.9–4.5) | – | – |
 
 - **Galaxy S23, cheapest 4-bit configuration per model:** SmolLM2-135M: prefill MNN GPU (1.8e3), decode MNN CPU (4.0e4); Gemma-3-270M: prefill MNN GPU (1.9e3), decode llama.cpp CPU (7.0e4); SmolLM2-360M: prefill MNN GPU (5.2e3), decode MNN CPU (7.9e4); Qwen3-0.6B: prefill MNN GPU (8.0e3), decode MNN CPU (1.3e5); Qwen3.5-0.8B: prefill MNN GPU (7.5e3), decode MNN GPU (1.1e5); Qwen3-1.7B: prefill MNN GPU (2.5e4), decode MNN CPU (3.0e5); Qwen3.5-2B: prefill MNN GPU (1.5e4), decode MNN GPU (2.3e5); Qwen3-4B: prefill MNN GPU (6.9e4), decode MNN CPU (6.0e5); Qwen3.5-4B: prefill MNN GPU (4.0e4), decode MNN GPU (5.6e5) (µJ/token).
-- **OnePlus 15, cheapest 4-bit configuration per model:** Gemma-3-270M: prefill llama.cpp GPU (1.3e3), decode llama.cpp CPU (1.6e4); SmolLM2-360M: prefill llama.cpp GPU (2.5e3), decode MNN CPU (2.3e4); Qwen3-0.6B: prefill llama.cpp GPU (2.3e3), decode MNN CPU (3.7e4); Qwen3.5-0.8B: prefill MNN GPU (3.0e3), decode MNN CPU (3.6e4); Qwen3-1.7B: prefill llama.cpp GPU (8.2e3), decode MNN CPU (8.6e4); Qwen3.5-2B: prefill MNN GPU (5.3e3), decode MNN CPU (9.6e4); Qwen3-4B: prefill llama.cpp GPU (1.9e4), decode MNN CPU (2.0e5); Qwen3.5-4B: prefill MNN GPU (1.5e4), decode MNN CPU (1.8e5) (µJ/token).
-- **OnePlus 8 Pro, cheapest 4-bit configuration per model:** SmolLM2-135M: prefill MNN GPU (3.0e3), decode MNN CPU (4.2e4); Gemma-3-270M: prefill MNN GPU (3.1e3), decode llama.cpp CPU (8.1e4); SmolLM2-360M: prefill llama.cpp GPU (8.1e3), decode llama.cpp GPU (2.0e4); Qwen3-0.6B: prefill MNN GPU (1.2e4), decode MNN CPU (1.4e5) (µJ/token).
+- **OnePlus 15, cheapest 4-bit configuration per model:** SmolLM2-135M: prefill MNN GPU (9.0e2), decode MNN CPU (9.9e3); Gemma-3-270M: prefill MNN GPU (9.0e2), decode llama.cpp CPU (1.6e4); SmolLM2-360M: prefill llama.cpp GPU (2.5e3), decode MNN CPU (2.3e4); Qwen3-0.6B: prefill llama.cpp GPU (2.3e3), decode MNN CPU (3.7e4); Qwen3.5-0.8B: prefill MNN GPU (3.0e3), decode MNN CPU (3.6e4); Qwen3-1.7B: prefill llama.cpp GPU (8.2e3), decode MNN CPU (8.6e4); Qwen3.5-2B: prefill MNN GPU (5.3e3), decode MNN CPU (9.6e4); Qwen3-4B: prefill llama.cpp GPU (1.9e4), decode MNN CPU (2.0e5); Qwen3.5-4B: prefill MNN GPU (1.5e4), decode MNN CPU (1.8e5) (µJ/token).
+- **OnePlus 8 Pro, cheapest 4-bit configuration per model:** SmolLM2-135M: prefill MNN GPU (3.0e3), decode MNN CPU (4.2e4); Gemma-3-270M: prefill MNN GPU (3.1e3), decode llama.cpp CPU (8.1e4); SmolLM2-360M: prefill MNN GPU (8.4e3), decode MNN CPU (9.4e4); Qwen3-0.6B: prefill MNN GPU (1.2e4), decode MNN CPU (1.4e5); Qwen3.5-0.8B: prefill MNN GPU (9.8e3), decode MNN GPU (1.2e5); Qwen3-1.7B: prefill MNN GPU (3.7e4), decode MNN GPU (3.2e5); Qwen3.5-2B: prefill MNN GPU (2.2e4), decode MNN GPU (2.7e5); Qwen3-4B: prefill MNN GPU (1.0e5), decode MNN GPU (6.9e5); Qwen3.5-4B: prefill MNN GPU (6.1e4), decode MNN GPU (6.3e5) (µJ/token).
 - **Redmi 9A, cheapest 4-bit configuration per model:** SmolLM2-135M: prefill MNN CPU (2.4e4), decode MNN CPU (6.5e4); Gemma-3-270M: prefill MNN CPU (2.5e4), decode MNN CPU (1.4e5); SmolLM2-360M: prefill MNN CPU (6.1e4), decode MNN CPU (1.2e5); Qwen3-0.6B: prefill MNN CPU (8.2e4), decode MNN CPU (1.9e5); Qwen3.5-0.8B: prefill MNN CPU (1.2e5), decode MNN CPU (2.4e5); Qwen3-1.7B: prefill MNN CPU (2.2e5), decode MNN CPU (4.1e5); Qwen3.5-2B: prefill MNN CPU (2.5e5), decode MNN CPU (4.6e5) (µJ/token).
 
 - **Energy per token is set by speed far more than by power.** Net power stays within roughly 0.5–10 W on every phone while speed spans three orders of magnitude, so the slow configurations are the expensive ones, and the slow phones pay several times more per token for the same model.
@@ -596,30 +606,30 @@ Helio G25 (MT6762), 8x Cortex-A53, no OpenCL, 4 GB (3.7 GiB usable), 32-bit Andr
 
 **OnePlus 8 Pro** (25):
 
-- `smollm2-135m__F16__mnn__gpu`: crash/error (exit 139): PB_MARK mnn mode=kv rep=0 begin=22531993062762 end=22559408747751 prefill_us=2836920 decode_us=24508694 prompt=256 gen=256 | Segmentation fault
-- `gemma3-270m__F16__mnn__gpu`: crash/error (exit 139): PB_MARK mnn mode=kv rep=0 begin=23222034261561 end=23264518394566 prefill_us=11180821 decode_us=30931702 prompt=256 gen=256 | Segmentation fault
-- `smollm2-360m__F16__mnn__gpu`: crash/error (exit 139): PB_MARK mnn mode=kv rep=0 begin=86822014967945 end=86857798107254 prefill_us=3905300 decode_us=31793249 prompt=256 gen=256 | Segmentation fault
-- `qwen3-0.6b__F16__mnn__gpu`: oom/killed (exit 137): 
+- `smollm2-135m__F16__mnn__gpu`: crash/error (exit 139): PB_MARK mnn mode=kv rep=0 begin=3449313005708 end=3476954763197 prefill_us=2642614 decode_us=24918440 prompt=256 gen=256 | Segmentation fault
+- `gemma3-270m__F16__mnn__gpu`: crash/error (exit 139): PB_MARK mnn mode=kv rep=0 begin=3525182569949 end=3568380956495 prefill_us=10870924 decode_us=31729478 prompt=256 gen=256 | Segmentation fault
+- `smollm2-360m__F16__mnn__gpu`: crash/error (exit 139): PB_MARK mnn mode=kv rep=0 begin=3614717857988 end=3646245739747 prefill_us=3698300 decode_us=27755604 prompt=256 gen=256 | Segmentation fault
+- `qwen3-0.6b__F16__mnn__gpu`: crash/error (exit 139): PB_MARK mnn mode=kv rep=0 begin=3702722899309 end=3743497399606 prefill_us=9996049 decode_us=30423294 prompt=256 gen=256 | Segmentation fault
 - `qwen3.5-0.8b__Q4_0__llama.cpp__gpu`: not run: head llama.cpp OpenCL build needs OpenCL symbols this phone's driver lacks
 - `qwen3.5-0.8b__Q8_0__llama.cpp__gpu`: not run: head llama.cpp OpenCL build needs OpenCL symbols this phone's driver lacks
 - `qwen3.5-0.8b__F16__llama.cpp__gpu`: not run: head llama.cpp OpenCL build needs OpenCL symbols this phone's driver lacks
-- `qwen3.5-0.8b__F16__mnn__gpu`: crash/error (exit 139): [llm_bench] -kv true is deprecated: use `-pg <pp>,<tg>` instead (`-p A -n B -kv true` == `-pg A,B`). | PB_MARK mnn mode=kv rep=0 begin=114958138235910 end=115003575004591 prefill_us=17914155 decode_us=26797741 prompt=256 gen=256 | Segme
+- `qwen3.5-0.8b__F16__mnn__gpu`: crash/error (exit 139): [llm_bench] -kv true is deprecated: use `-pg <pp>,<tg>` instead (`-p A -n B -kv true` == `-pg A,B`). | PB_MARK mnn mode=kv rep=0 begin=10151625959866 end=10188652934070 prefill_us=11456158 decode_us=24840737 prompt=256 gen=256 | Segment
 - `qwen3-1.7b__F16__mnn__cpu`: does not fit in RAM: 6.42 GiB of weights in memory on a phone with 11.24 GiB RAM (limit 55%); not run
-- `qwen3-1.7b__F16__mnn__gpu`: crash/error (exit 139): PB_MARK mnn mode=kv rep=0 begin=88938867536252 end=89019827177055 prefill_us=28925100 decode_us=51615366 prompt=256 gen=256 | Segmentation fault
+- `qwen3-1.7b__F16__mnn__gpu`: crash/error (exit 139): PB_MARK mnn mode=kv rep=0 begin=4396668076752 end=4478064218700 prefill_us=29483435 decode_us=51528531 prompt=256 gen=256 | Segmentation fault
 - `qwen3.5-2b__Q4_0__llama.cpp__gpu`: not run: head llama.cpp OpenCL build needs OpenCL symbols this phone's driver lacks
 - `qwen3.5-2b__Q8_0__llama.cpp__gpu`: not run: head llama.cpp OpenCL build needs OpenCL symbols this phone's driver lacks
 - `qwen3.5-2b__F16__mnn__cpu`: does not fit in RAM: 7.04 GiB of weights in memory on a phone with 11.24 GiB RAM (limit 55%); not run
 - `qwen3.5-2b__F16__llama.cpp__gpu`: not run: head llama.cpp OpenCL build needs OpenCL symbols this phone's driver lacks
-- `qwen3.5-2b__F16__mnn__gpu`: crash/error (exit 139): [llm_bench] -kv true is deprecated: use `-pg <pp>,<tg>` instead (`-p A -n B -kv true` == `-pg A,B`). | PB_MARK mnn mode=kv rep=0 begin=115521557529393 end=115635620224401 prefill_us=62183205 decode_us=51181699 prompt=256 gen=256 | Segme
-- `qwen3-4b-instruct-2507__Q8_0__llama.cpp__cpu`: does not fit in RAM: 657 MB of the benchmark process was swapped out (stopped at > 512 MB)
+- `qwen3.5-2b__F16__mnn__gpu`: crash/error (exit 139): [llm_bench] -kv true is deprecated: use `-pg <pp>,<tg>` instead (`-p A -n B -kv true` == `-pg A,B`). | PB_MARK mnn mode=kv rep=0 begin=12065349525594 end=12147317689938 prefill_us=32657448 decode_us=48599592 prompt=256 gen=256 | Segment
+- `qwen3-4b-instruct-2507__Q8_0__llama.cpp__cpu`: does not fit in RAM: 625 MB of the benchmark process was swapped out (stopped at > 512 MB)
 - `qwen3-4b-instruct-2507__Q8_0__llama.cpp__gpu`: crash/error (exit 1): ggml_opencl: loading OpenCL kernels........................................................................... | ggml_opencl: default device: 'QUALCOMM Adreno(TM) (OpenCL 2.0 Adreno(TM) 650)' | main: error: failed to load model '/data/loc
 - `qwen3-4b-instruct-2507__F16__llama.cpp__cpu`: does not fit in RAM: 7.50 GiB of weights in memory on a phone with 11.24 GiB RAM (limit 55%); not run
 - `qwen3-4b-instruct-2507__F16__mnn__cpu`: does not fit in RAM: 15.00 GiB of weights in memory on a phone with 11.24 GiB RAM (limit 55%); not run
 - `qwen3-4b-instruct-2507__F16__llama.cpp__gpu`: does not fit in RAM: 7.50 GiB of weights in memory on a phone with 11.24 GiB RAM (limit 55%); not run
 - `qwen3-4b-instruct-2507__F16__mnn__gpu`: does not fit in RAM: 7.50 GiB of weights in memory on a phone with 11.24 GiB RAM (limit 55%); not run
 - `qwen3.5-4b__Q4_0__llama.cpp__gpu`: not run: head llama.cpp OpenCL build needs OpenCL symbols this phone's driver lacks
-- `qwen3.5-4b__Q8_0__llama.cpp__cpu`: does not fit in RAM: 829 MB of the benchmark process was swapped out (stopped at > 512 MB)
-- `qwen3.5-4b__Q8__mnn__cpu`: does not fit in RAM: 615 MB of the benchmark process was swapped out (stopped at > 512 MB)
+- `qwen3.5-4b__Q8_0__llama.cpp__cpu`: does not fit in RAM: 556 MB of the benchmark process was swapped out (stopped at > 512 MB)
+- `qwen3.5-4b__Q8__mnn__cpu`: does not fit in RAM: 4831 MB of the benchmark process was swapped out (stopped at > 512 MB)
 - `qwen3.5-4b__Q8_0__llama.cpp__gpu`: not run: head llama.cpp OpenCL build needs OpenCL symbols this phone's driver lacks
 
 **Redmi 9A** (18):

@@ -1,6 +1,6 @@
 # Why each phone needs its own measurements: requirement difficulty
 
-Generated 2026-10-16T14:35 by `Benchmark-Harness/paper_table5/requirements_md.py` from the four measured phones ([all_results.md](all_results.md) and [RESULTS.md](RESULTS.md)).
+Generated 2026-10-27T13:07 by `Benchmark-Harness/paper_table5/requirements_md.py` from the four measured phones ([RESULTS.md](RESULTS.md)).
 
 ## The question
 
@@ -26,18 +26,18 @@ A requirement's tier is the average over the three flagship-class phones; each p
 
 | ID | Requirement | Use case | Model-card part (Factory can check) | Measured part (needs the phone) | Galaxy S23 | OnePlus 15 | OnePlus 8 Pro | Average | Tier |
 |---|---|---|---|---|--:|--:|--:|--:|---|
-| E1 | Basic assistant | a help bot where a slow but steady answer is fine | any model | decode ≥ 5 tokens/s | 79% (E) | 89% (E) | 65% (E) | 78% | **Easy** |
-| E2 | Small on-device helper | smart replies, short rewrites | model file ≤ 1 GB | decode ≥ 10 tokens/s | 79% (E) | 94% (E) | 58% (M) | 77% | **Easy** |
-| E3 | Capable model, patient user | offline Q&A where answer quality matters more than speed | ≥ 1.5B parameters | decode ≥ 5 tokens/s | 61% (E) | 86% (E) | 43% (M) | 64% | **Easy** |
-| M1 | Interactive chat | a chat app: first token quickly, text faster than reading speed | any model | decode ≥ 10 tokens/s and first token ≤ 2 s after a 256-token prompt | 39% (M) | 72% (E) | 21% (H) | 44% | **Medium** |
-| M2 | Mid-size model at reading speed | assistant that needs more than a toy model | ≥ 0.6B parameters | decode ≥ 10 tokens/s | 59% (M) | 85% (E) | 24% (H) | 56% | **Medium** |
-| M3 | Higher precision | accuracy-sensitive extraction, no 4-bit quantization | 8-bit or 16-bit weights | decode ≥ 15 tokens/s | 51% (M) | 68% (E) | 24% (H) | 48% | **Medium** |
-| M4 | Snappy small model | in-app assistant that must feel instant | model file ≤ 1 GB | decode ≥ 15 tokens/s and first token ≤ 1 s | 48% (M) | 90% (E) | 29% (H) | 56% | **Medium** |
-| M5 | Keyboard autocomplete | suggestions while typing | model file ≤ 0.5 GB | first token ≤ 0.5 s and decode ≥ 30 tokens/s | 32% (M) | 71% (E) | 15% (H) | 39% | **Medium** |
-| H1 | Capable fluent chat | a 1.5B+ assistant that streams faster than you read | ≥ 1.5B parameters | decode ≥ 20 tokens/s | 18% (H) | 39% (M) | 2% (H) | 20% | **Hard** |
+| E1 | Basic assistant | a help bot where a slow but steady answer is fine | any model | decode ≥ 5 tokens/s | 79% (E) | 89% (E) | 66% (E) | 78% | **Easy** |
+| E2 | Small on-device helper | smart replies, short rewrites | model file ≤ 1 GB | decode ≥ 10 tokens/s | 79% (E) | 94% (E) | 56% (M) | 76% | **Easy** |
+| E3 | Capable model, patient user | offline Q&A where answer quality matters more than speed | ≥ 1.5B parameters | decode ≥ 5 tokens/s | 61% (E) | 86% (E) | 45% (M) | 64% | **Easy** |
+| M1 | Interactive chat | a chat app: first token quickly, text faster than reading speed | any model | decode ≥ 10 tokens/s and first token ≤ 2 s after a 256-token prompt | 39% (M) | 73% (E) | 29% (H) | 47% | **Medium** |
+| M2 | Mid-size model at reading speed | assistant that needs more than a toy model | ≥ 0.6B parameters | decode ≥ 10 tokens/s | 59% (M) | 85% (E) | 34% (M) | 59% | **Medium** |
+| M3 | Higher precision | accuracy-sensitive extraction, no 4-bit quantization | 8-bit or 16-bit weights | decode ≥ 15 tokens/s | 51% (M) | 68% (E) | 28% (H) | 49% | **Medium** |
+| M4 | Snappy small model | in-app assistant that must feel instant | model file ≤ 1 GB | decode ≥ 15 tokens/s and first token ≤ 1 s | 48% (M) | 92% (E) | 37% (M) | 59% | **Medium** |
+| M5 | Keyboard autocomplete | suggestions while typing | model file ≤ 0.5 GB | first token ≤ 0.5 s and decode ≥ 30 tokens/s | 32% (M) | 71% (E) | 26% (H) | 43% | **Medium** |
+| H1 | Capable fluent chat | a 1.5B+ assistant that streams faster than you read | ≥ 1.5B parameters | decode ≥ 20 tokens/s | 18% (H) | 39% (M) | 5% (H) | 20% | **Hard** |
 | H2 | Capable interactive chat | the M1 chat app with a 1.5B+ model | ≥ 1.5B parameters | decode ≥ 10 tokens/s and first token ≤ 2 s | 16% (H) | 55% (M) | 0% (H) | 23% | **Hard** |
-| H3 | Document summarization | read a long note or email, then summarize | any model | prefill ≥ 300 tokens/s (a 2,000-token document in under 7 s) and decode ≥ 10 tokens/s | 20% (H) | 54% (M) | 12% (H) | 29% | **Hard** |
-| H4 | Battery-capped capable model | always-available assistant that must not drain the battery | ≥ 1.5B parameters | ≤ 50 J per request (256-token prompt + 256-token answer, about 0.1% of a phone battery) and decode ≥ 10 tokens/s | 0% (H) | 30% (H) | n/a | 15% | **Hard** |
+| H3 | Document summarization | read a long note or email, then summarize | any model | prefill ≥ 300 tokens/s (a 2,000-token document in under 7 s) and decode ≥ 10 tokens/s | 20% (H) | 55% (M) | 15% (H) | 30% | **Medium** |
+| H4 | Battery-capped capable model | always-available assistant that must not drain the battery | ≥ 1.5B parameters | ≤ 50 J per request (256-token prompt + 256-token answer, about 0.1% of a phone battery) and decode ≥ 10 tokens/s | 0% (H) | 30% (H) | 0% (H) | 10% | **Hard** |
 
 Each cell: share of model-card-eligible configurations that meet the requirement on that phone, and that phone's tier (E/M/H).
 
@@ -51,7 +51,7 @@ For the hard requirements, the configurations that pass on each phone (fastest d
 
 - Galaxy S23: Qwen3.5-2B Q4 MNN CPU, Qwen3-1.7B Q4 MNN CPU, Qwen3.5-2B Q4 MNN GPU, Qwen3-1.7B Q4_0 llama.cpp CPU (+4 more)
 - OnePlus 15: Qwen3.5-2B Q4 MNN GPU, Qwen3.5-2B Q4_0 llama.cpp GPU, Qwen3.5-2B Q4 MNN CPU, Qwen3-1.7B Q4 MNN CPU (+13 more)
-- OnePlus 8 Pro: Qwen3-1.7B Q4_0 llama.cpp CPU
+- OnePlus 8 Pro: Qwen3-1.7B Q4_0 llama.cpp CPU, Qwen3.5-2B Q4 MNN CPU
 
 **H2 Capable interactive chat** (≥ 1.5B parameters; decode ≥ 10 tokens/s and first token ≤ 2 s)
 
@@ -62,14 +62,14 @@ For the hard requirements, the configurations that pass on each phone (fastest d
 **H3 Document summarization** (any model; prefill ≥ 300 tokens/s (a 2,000-token document in under 7 s) and decode ≥ 10 tokens/s)
 
 - Galaxy S23: SmolLM2-135M Q4 MNN CPU, SmolLM2-135M Q4_0 llama.cpp CPU, SmolLM2-135M Q8 MNN CPU, SmolLM2-135M Q8_0 llama.cpp CPU (+17 more)
-- OnePlus 15: SmolLM2-135M Q4_0 llama.cpp CPU, SmolLM2-135M Q8_0 llama.cpp CPU, SmolLM2-135M Q4 MNN CPU, Gemma3-270M Q4_0 llama.cpp CPU (+52 more)
-- OnePlus 8 Pro: SmolLM2-135M Q4_0 llama.cpp CPU, SmolLM2-135M Q4 MNN CPU, Gemma3-270M Q4_0 llama.cpp CPU, SmolLM2-135M Q8_0 llama.cpp CPU (+8 more)
+- OnePlus 15: SmolLM2-135M Q4_0 llama.cpp CPU, SmolLM2-135M Q8_0 llama.cpp CPU, SmolLM2-135M Q4 MNN CPU, Gemma3-270M Q4_0 llama.cpp CPU (+53 more)
+- OnePlus 8 Pro: SmolLM2-135M Q4_0 llama.cpp CPU, SmolLM2-135M Q4 MNN CPU, SmolLM2-135M Q8_0 llama.cpp CPU, SmolLM2-135M Q8 MNN CPU (+12 more)
 
 **H4 Battery-capped capable model** (≥ 1.5B parameters; ≤ 50 J per request (256-token prompt + 256-token answer, about 0.1% of a phone battery) and decode ≥ 10 tokens/s)
 
 - Galaxy S23: **none**
 - OnePlus 15: Qwen3.5-2B Q4 MNN GPU, Qwen3.5-2B Q4_0 llama.cpp GPU, Qwen3.5-2B Q4 MNN CPU, Qwen3-1.7B Q4 MNN CPU (+9 more)
-- OnePlus 8 Pro: no energy data
+- OnePlus 8 Pro: **none**
 
 ## Can another phone's measurements stand in?
 
@@ -78,24 +78,24 @@ If the Factory measured one phone and reused those numbers for another, how ofte
 | ID | Requirement | All passing: still meets it on the other phone | Best pick: still meets it |
 |---|---|--:|--:|
 | E1 | Basic assistant | 91% | 6 of 6 phone pairs |
-| E2 | Small on-device helper | 85% | 6 of 6 phone pairs |
-| E3 | Capable model, patient user | 82% | 6 of 6 phone pairs |
-| M1 | Interactive chat | 67% | 6 of 6 phone pairs |
-| M2 | Mid-size model at reading speed | 73% | 6 of 6 phone pairs |
-| M3 | Higher precision | 76% | 6 of 6 phone pairs |
-| M4 | Snappy small model | 69% | 6 of 6 phone pairs |
-| M5 | Keyboard autocomplete | 66% | 6 of 6 phone pairs |
-| H1 | Capable fluent chat | 61% | 4 of 6 phone pairs |
+| E2 | Small on-device helper | 86% | 6 of 6 phone pairs |
+| E3 | Capable model, patient user | 83% | 6 of 6 phone pairs |
+| M1 | Interactive chat | 73% | 6 of 6 phone pairs |
+| M2 | Mid-size model at reading speed | 78% | 6 of 6 phone pairs |
+| M3 | Higher precision | 79% | 6 of 6 phone pairs |
+| M4 | Snappy small model | 72% | 6 of 6 phone pairs |
+| M5 | Keyboard autocomplete | 75% | 6 of 6 phone pairs |
+| H1 | Capable fluent chat | 64% | 5 of 6 phone pairs |
 | H2 | Capable interactive chat | 28% | 2 of 4 phone pairs |
 | H3 | Document summarization | 67% | 6 of 6 phone pairs |
-| H4 | Battery-capped capable model | 0% | 0 of 1 phone pairs |
+| H4 | Battery-capped capable model | 0% | 0 of 2 phone pairs |
 
 Reusing another flagship's measurements beats choosing blind. Its single fastest configuration usually transfers for easy and medium requirements, but not for hard ones (H1, H2, H4 above). And 24–34% of the configurations that pass a medium requirement on one phone fail it on another (33–100% for hard ones), so a Factory that needs a specific model, engine or bit-width still has to measure. Speed does not scale by a single factor between phones (next section).
 
 ## Why the Factory can't predict this from the model card
 
-1. **Speed doesn't scale by one factor between phones.** The same configuration's prefill is 0.28× to 133× faster on the OnePlus 15 than on the Galaxy S23 (median 2.1×), and decode 0.92× to 4.6×. Against the S23, the OnePlus 8 Pro decodes at 0.14× to 1.1×. The engine, backend and weight type, not the phone's general speed, decide most of the outcome.
-2. **"Use the GPU" is phone-specific.** GPU prefill beats CPU prefill in: Galaxy S23 18 of 38; OnePlus 15 42 of 42; OnePlus 8 Pro 11 of 33 configurations. GPU decode is usually *slower* than CPU decode on all three. On the OnePlus 8 Pro, llama.cpp on the GPU is unusable (Qwen3-1.7B 8-bit: 0.88 tokens/s prefill).
+1. **Speed doesn't scale by one factor between phones.** The same configuration's prefill is 0.68× to 133× faster on the OnePlus 15 than on the Galaxy S23 (median 2.1×), and decode 0.92× to 4.6×. Against the S23, the OnePlus 8 Pro decodes at 0.14× to 1.2×. The engine, backend and weight type, not the phone's general speed, decide most of the outcome.
+2. **"Use the GPU" is phone-specific.** GPU prefill beats CPU prefill in: Galaxy S23 18 of 38; OnePlus 15 42 of 42; OnePlus 8 Pro 4 of 33 configurations. GPU decode is usually *slower* than CPU decode on all three. On the OnePlus 8 Pro, llama.cpp on the GPU is unusable (Qwen3-1.7B 8-bit: 0.88 tokens/s prefill).
 3. **The best configuration for the same goal differs by phone:**
 
    | Goal | Galaxy S23 | OnePlus 15 | OnePlus 8 Pro | Redmi 9A |
@@ -105,7 +105,7 @@ Reusing another flagship's measurements beats choosing blind. Its single fastest
    | Fastest prefill, any model | SmolLM2-135M Q8 MNN GPU | Gemma3-270M Q4 MNN GPU | Gemma3-270M Q4_0 llama.cpp CPU | Gemma3-270M F16 MNN CPU |
 
 4. **Whether a configuration runs at all differs by phone** (it runs on one phone but not the other): Galaxy S23 vs OnePlus 15: 11 of 104; Galaxy S23 vs OnePlus 8 Pro: 9 of 104; OnePlus 15 vs OnePlus 8 Pro: 16 of 104. Memory limits, OpenCL driver support and crashes are device-specific: the head llama.cpp GPU build cannot even load on the OnePlus 8 Pro's driver.
-5. **The cost of more bits differs by phone.** Going from 4-bit to 8-bit keeps a median 0.87–0.88× of decode speed on the Galaxy S23 and OnePlus 15 but only 0.66× on the OnePlus 8 Pro, and on the S23's llama.cpp GPU path 8-bit even decodes faster than 4-bit for some small models.
+5. **The cost of more bits differs by phone.** Going from 4-bit to 8-bit keeps a median 0.88× on the Galaxy S23, 0.87× on the OnePlus 15, 0.69× on the OnePlus 8 Pro of decode speed, and on the S23's llama.cpp GPU path 8-bit even decodes faster than 4-bit for some small models.
 
 ## The budget phone (Redmi 9A)
 
